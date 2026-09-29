@@ -2104,42 +2104,101 @@ tbody tr:hover td {
 }
 
 .certificate-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-top: 14px;
-}
-
-.seal {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: #f3a42b;
-  font-family: 'Barlow Condensed', sans-serif;
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  align-items: end;
+  gap: 16px;
+  padding-top: 18px;
+  border-top: 1px dashed rgba(243, 164, 43, 0.25);
+  margin-top: 14px;
 }
 
 .signature {
-  text-align: right;
+  text-align: left;
 }
 
 .signature span {
   display: block;
   font-family: 'Caveat', cursive;
-  font-size: 22px;
-  color: #5ed8c4;
+  font-size: 24px;
+  color: #f3a42b;
   line-height: 1;
 }
 
 .signature small {
   display: block;
-  font-size: 8.5px;
+  font-family: 'DM Mono', monospace;
+  font-size: 7.5px;
   color: #718186;
   text-transform: uppercase;
   letter-spacing: 0.12em;
   margin-top: 4px;
+}
+
+.seal {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-self: center;
+  gap: 4px;
+  color: #f3a42b;
+  text-align: center;
+}
+
+.seal small {
+  display: block;
+  font-family: 'DM Mono', monospace;
+  font-size: 7.5px;
+  color: #a18c61;
+  letter-spacing: 0.1em;
+  line-height: 1.25;
+}
+
+.certificate-qr-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-self: end;
+  text-align: center;
+  gap: 5px;
+}
+
+.authorization-qr {
+  width: 78px;
+  height: 78px;
+  image-rendering: pixelated;
+  background: #f4f0e5;
+  border: 1px solid rgba(224, 174, 82, 0.75);
+  border-radius: 4px;
+  padding: 4px;
+  display: block;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+}
+
+.certificate-qr-wrap small {
+  display: block;
+  font-family: 'DM Mono', monospace;
+  font-size: 7.5px;
+  letter-spacing: 0.08em;
+  color: #8c9fa4;
+  line-height: 1.25;
+  text-transform: uppercase;
+}
+
+.certificate-id {
+  color: #817a68;
+  letter-spacing: 0.08em;
+  margin-top: 18px;
+  font-family: 'DM Mono', monospace;
+  font-size: 8px;
+  text-align: center;
+  padding-top: 12px;
+  border-top: 1px solid rgba(194, 214, 216, 0.1);
+}
+
+.certificate-id span {
+  color: #5ed8c4;
+  padding: 0 5px;
 }
 
 /* ==================================================

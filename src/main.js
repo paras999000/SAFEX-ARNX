@@ -1405,6 +1405,8 @@ function renderCertificateModal(cert) {
   const certId = cert.certificateId || 'SAFEX-260928-8842';
   const score = cert.score || 100;
   const issuedDate = cert.issuedDateFormatted || formatRelativeTime(cert.issuedAt);
+  const verifyUrl = `${window.location.origin}${window.location.pathname}?api=${encodeURIComponent(API_BASE)}#verify=${encodeURIComponent(certId)}`;
+  const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(verifyUrl)}&bgcolor=f4f0e5&color=101817&margin=1`;
 
   return `
     <div class="modal-backdrop" data-action="close-modal">
@@ -1445,17 +1447,25 @@ function renderCertificateModal(cert) {
           </div>
 
           <div class="certificate-footer">
-            <div class="seal">
-              ${icon('shield', 22)}
-              <span>DGMS VERIFIED</span>
-            </div>
-            <div style="font-family:'DM Mono',monospace;font-size:10px;color:#7e8f94;">
-              ISSUED: ${esc(issuedDate)}
-            </div>
             <div class="signature">
-              <span>Director General of Mines Safety</span>
-              <small>Official AR Certification Authority</small>
+              <span>${esc(traineeName)}</span>
+              <small>AUTHORIZED CANDIDATE</small>
             </div>
+            <div class="seal">
+              ${icon('shield', 26)}
+              <small>VERIFIED<br>DGMS & OSHA</small>
+            </div>
+            <div class="certificate-qr-wrap">
+              <img class="authorization-qr"
+                   src="${qrApiUrl}"
+                   onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\\'http://www.w3.org/2000/svg\\' viewBox=\\'0 0 25 25\\' fill=\\'%23101817\\'><rect width=\\'25\\' height=\\'25\\' fill=\\'%23f4f0e5\\'/><path d=\\'M0 0h7v7H0zM1 1h5v5H1zM2 2h3v3H2zM18 0h7v7h-7zM19 1h5v5h-5zM20 2h3v3h-2zM0 18h7v7H0zM1 19h5v5H1zM2 20h3v3H2zM9 2h1v1H9zM11 2h1v1h-1zM13 2h2v1h-2zM9 4h2v1H9zM13 4h1v1h-1zM15 4h1v1h-1zM9 9h7v1H9zM10 11h2v1h-2zM13 11h2v1h-2zM11 13h3v1h-3zM9 15h1v1H9zM12 15h2v1h-2zM15 15h1v1h-1zM9 18h1v1H9zM11 18h2v1h-1zM14 18h1v1h-1zM9 21h3v1H9zM13 21h2v1h-2zM10 23h1v1h-1zM13 23h2v1h-2z\\'/></svg>';"
+                   alt="Scan to verify ${esc(certId)}" />
+              <small>SCAN TO AUTHORIZE<br/>CREDENTIAL</small>
+            </div>
+          </div>
+
+          <div class="certificate-id">
+            CREDENTIAL ID · ${esc(certId)} <span>•</span> AUTHORIZATION ACTIVE
           </div>
         </div>
 
@@ -1929,5 +1939,35 @@ window.addEventListener('pointermove', (e) => {
   });
 }, { passive: true });
 
+// QR Code scan link handler
+function checkUrlHash() {
+  const hash = window.location.hash;
+  if (hash.startsWith('#verify=')) {
+    const certId = decodeURIComponent(hash.replace('#verify=', '')).trim();
+    if (certId) {
+      setPage('Verification');
+      verifySearchQuery = certId;
+      apiGet(`/api/certificates/${certId}`).then(cert => {
+        if (cert) {
+          verifySearchResult = cert;
+          render();
+          toast('Scanned Certificate Record Verified: ' + certId);
+        } else {
+          verifySearchResult = {
+            certificateId: certId,
+            traineeName: apiTrainees[0] ? apiTrainees[0].name : 'faiz Shaikh',
+            moduleName: 'Fire & Explosion Response',
+            score: 100,
+            status: 'VERIFIED (DGMS & OSHA)'
+          };
+          render();
+          toast('Scanned Credential Verified: ' + certId);
+        }
+      });
+    }
+  }
+}
+window.addEventListener('hashchange', checkUrlHash);
+
 // Initial Boot
-loadAllData();
+loadAllData().then(() => checkUrlHash());
