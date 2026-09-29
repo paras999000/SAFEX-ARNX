@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+backend/node_modules/
+frontend/node_modules/
+
+# Environment Variables (Keep credentials private)
+.env
+backend/.env
+*.env.local
+
+# Production Build Output
+dist/
+backend/dist/
+frontend/dist/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+
+# Database Local Cache
+backend/safex_local_db.json
+safex_local_db.json
+
+# OS and Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
