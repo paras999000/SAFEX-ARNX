@@ -1,0 +1,91 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Trainee {
+  id           String            @id @default(uuid())
+  traineeId    String            @unique
+  name         String
+  language     String            @default("en") // "en", "hi", "sat" (Santali)
+  deviceId     String?
+  isDemo       Boolean           @default(false)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  sessions     TrainingSession[]
+  certificates Certificate[]
+
+  @@map("trainees")
+}
+
+model TrainingSession {
+  id               String          @id @default(uuid())
+  sessionId        String          @unique
+  traineeId        String
+  module           String          // "FIRE", "GAS"
+  status           String          @default("STARTED") // "STARTED", "IN_PROGRESS", "COMPLETED", "FAILED"
+  startedAt        DateTime        @default(now())
+  completedAt      DateTime?
+  durationSeconds  Int             @default(0)
+  assessmentPassed Boolean         @default(false)
+  certificateId    String?
+  isDemo           Boolean         @default(false)
+  createdAt        DateTime        @default(now())
+
+  trainee          Trainee?        @relation(fields: [traineeId], references: [traineeId], onDelete: Cascade)
+  events           TrainingEvent[]
+  assessments      Assessment[]
+  certificate      Certificate?    @relation(fields: [certificateId], references: [certificateId])
+
+  @@map("training_sessions")
+}
+
+model TrainingEvent {
+  id         String          @id @default(uuid())
+  sessionId  String
+  eventType  String          // e.g. "SURFACE_DETECTED", "BUDDY_CONFIRMED", etc.
+  eventData  Json            // JSON payload
+  timestamp  DateTime        @default(now())
+
+  session    TrainingSession? @relation(fields: [sessionId], references: [sessionId], onDelete: Cascade)
+
+  @@map("training_events")
+}
+
+model Assessment {
+  id               String          @id @default(uuid())
+  sessionId        String
+  module           String          // "FIRE", "GAS"
+  completedActions Json            // String[] stored as JSON
+  requiredActions  Json?           // Optional String[] stored as JSON
+  passed           Boolean
+  score            Float
+  durationSeconds  Int             @default(0)
+  createdAt        DateTime        @default(now())
+
+  session          TrainingSession? @relation(fields: [sessionId], references: [sessionId], onDelete: Cascade)
+
+  @@map("assessments")
+}
+
+model Certificate {
+  id            String            @id @default(uuid())
+  certificateId String            @unique // e.g. "SAFEX-20260929-123456"
+  sessionId     String
+  traineeId     String
+  module        String            // "FIRE", "GAS"
+  score         Float
+  percentage    Float
+  status        String            // "PASSED", "FAILED"
+  issuedAt      DateTime          @default(now())
+
+  trainee       Trainee?          @relation(fields: [traineeId], references: [traineeId], onDelete: Cascade)
+  sessions      TrainingSession[]
+
+  @@map("certificates")
+}
