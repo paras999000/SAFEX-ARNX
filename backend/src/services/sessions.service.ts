@@ -1,5 +1,4 @@
-import { prisma, isDatabaseConnected } from '../prisma/client';
-import { memoryStore } from './store';
+import { prisma } from '../prisma/client';
 
 export class SessionsService {
   async startSession(data: {
@@ -16,76 +15,48 @@ export class SessionsService {
     const normModule = data.module.toUpperCase().includes('FIRE') ? 'FIRE' : 'GAS';
     const started = data.startedAt ? new Date(data.startedAt) : new Date();
 
-    if (isDatabaseConnected()) {
-      try {
-        const existingTrainee = await prisma.trainee.findUnique({
-          where: { traineeId: data.traineeId },
-        });
+    try {
+      const existingTrainee = await prisma.trainee.findUnique({
+        where: { traineeId: data.traineeId },
+      });
 
-        if (!existingTrainee) {
-          await prisma.trainee.create({
-            data: {
-              traineeId: data.traineeId,
-              name: `Trainee ${data.traineeId}`,
-              language: 'sat',
-              isDemo: data.isDemo ?? false,
-            },
-          });
-        }
-
-        const session = await prisma.trainingSession.upsert({
-          where: { sessionId: data.sessionId },
-          update: {
+      if (!existingTrainee) {
+        await prisma.trainee.create({
+          data: {
             traineeId: data.traineeId,
-            module: normModule,
-            status: 'IN_PROGRESS',
-          },
-          create: {
-            sessionId: data.sessionId,
-            traineeId: data.traineeId,
-            module: normModule,
-            status: 'STARTED',
-            startedAt: started,
+            name: `Trainee ${data.traineeId}`,
+            language: 'sat',
             isDemo: data.isDemo ?? false,
           },
-          include: {
-            trainee: true,
-          },
         });
+      }
 
-        memoryStore.upsertSession({
+      const session = await prisma.trainingSession.upsert({
+        where: { sessionId: data.sessionId },
+        update: {
+          traineeId: data.traineeId,
+          module: normModule,
+          status: 'IN_PROGRESS',
+        },
+        create: {
           sessionId: data.sessionId,
           traineeId: data.traineeId,
           module: normModule,
+          status: 'STARTED',
           startedAt: started,
-          isDemo: data.isDemo,
-        });
-
-        return session;
-      } catch {}
-    }
-
-    const trainee = memoryStore.trainees.find((t) => t.traineeId === data.traineeId);
-    if (!trainee) {
-      memoryStore.upsertTrainee({
-        traineeId: data.traineeId,
-        name: `Trainee ${data.traineeId}`,
-        language: 'sat',
+          isDemo: data.isDemo ?? false,
+        },
+        include: {
+          trainee: true,
+        },
       });
+
+      console.log(`[PostgreSQL] Session started & persisted: ${data.sessionId} (${normModule})`);
+      return session;
+    } catch (err: any) {
+      console.error(`[PostgreSQL ERROR] Failed to start session ${data.sessionId}:`, err?.message || err);
+      throw new Error(`Database error starting session: ${err?.message || 'Unknown error'}`);
     }
-
-    const rec = memoryStore.upsertSession({
-      sessionId: data.sessionId,
-      traineeId: data.traineeId,
-      module: normModule,
-      startedAt: started,
-      isDemo: data.isDemo,
-    });
-
-    return {
-      ...rec,
-      trainee: memoryStore.trainees.find((t) => t.traineeId === data.traineeId),
-    };
   }
 
   async updateSession(
@@ -118,31 +89,23 @@ export class SessionsService {
       updatePayload.certificateId = data.certificateId;
     }
 
-    if (isDatabaseConnected()) {
-      try {
-        const session = await prisma.trainingSession.update({
-          where: { sessionId },
-          data: updatePayload,
-          include: {
-            trainee: true,
-            events: true,
-            assessments: true,
-          },
-        });
+    try {
+      const session = await prisma.trainingSession.update({
+        where: { sessionId },
+        data: updatePayload,
+        include: {
+          trainee: true,
+          events: true,
+          assessments: true,
+        },
+      });
 
-        memoryStore.updateSession(sessionId, updatePayload);
-        return session;
-      } catch {}
+      console.log(`[PostgreSQL] Session updated & persisted: ${sessionId}`);
+      return session;
+    } catch (err: any) {
+      console.error(`[PostgreSQL ERROR] Failed to update session ${sessionId}:`, err?.message || err);
+      throw new Error(`Database error updating session: ${err?.message || 'Unknown error'}`);
     }
-
-    const s = memoryStore.updateSession(sessionId, updatePayload);
-    if (!s) throw new Error(`Training session not found with id: ${sessionId}`);
-    return {
-      ...s,
-      trainee: memoryStore.trainees.find((t) => t.traineeId === s.traineeId),
-      events: memoryStore.events.filter((e) => e.sessionId === s.sessionId),
-      assessments: memoryStore.assessments.filter((a) => a.sessionId === s.sessionId),
-    };
   }
 
   async getSessions(filters: {
@@ -153,111 +116,77 @@ export class SessionsService {
     date?: string;
     limit?: number;
   }) {
-    if (isDatabaseConnected()) {
-      try {
-        const where: any = {};
+    try {
+      const where: any = {};
 
-        if (filters.module) {
-          where.module = filters.module.toUpperCase();
-        }
-        if (filters.status) {
-          where.status = filters.status.toUpperCase();
-        }
-        if (filters.traineeId) {
-          where.traineeId = filters.traineeId;
-        }
-        if (filters.language) {
-          const l = filters.language.toLowerCase();
-          const norm = l === 'santali' ? 'sat' : l === 'hindi' ? 'hi' : l === 'english' ? 'en' : l;
-          where.trainee = { language: norm };
-        }
-        if (filters.date) {
-          const startOfDay = new Date(filters.date);
-          startOfDay.setHours(0, 0, 0, 0);
-          const endOfDay = new Date(filters.date);
-          endOfDay.setHours(23, 59, 59, 999);
-          where.startedAt = {
-            gte: startOfDay,
-            lte: endOfDay,
-          };
-        }
+      if (filters.module) {
+        where.module = filters.module.toUpperCase();
+      }
+      if (filters.status) {
+        where.status = filters.status.toUpperCase();
+      }
+      if (filters.traineeId) {
+        where.traineeId = filters.traineeId;
+      }
+      if (filters.language) {
+        const l = filters.language.toLowerCase();
+        const norm = l === 'santali' ? 'sat' : l === 'hindi' ? 'hi' : l === 'english' ? 'en' : l;
+        where.trainee = { language: norm };
+      }
+      if (filters.date) {
+        const startOfDay = new Date(filters.date);
+        startOfDay.setHours(0, 0, 0, 0);
+        const endOfDay = new Date(filters.date);
+        endOfDay.setHours(23, 59, 59, 999);
+        where.startedAt = {
+          gte: startOfDay,
+          lte: endOfDay,
+        };
+      }
 
-        return await prisma.trainingSession.findMany({
-          where,
-          include: {
-            trainee: true,
-            events: {
-              orderBy: { timestamp: 'desc' },
-              take: 5,
-            },
-            assessments: true,
-            certificate: true,
+      return await prisma.trainingSession.findMany({
+        where,
+        include: {
+          trainee: true,
+          events: {
+            orderBy: { timestamp: 'desc' },
+            take: 5,
           },
-          orderBy: { startedAt: 'desc' },
-          take: filters.limit || 50,
-        });
-      } catch {}
-    }
-
-    let filtered = [...memoryStore.sessions];
-
-    if (filters.module) {
-      filtered = filtered.filter((s) => s.module.toUpperCase() === filters.module!.toUpperCase());
-    }
-    if (filters.status) {
-      filtered = filtered.filter((s) => s.status.toUpperCase() === filters.status!.toUpperCase());
-    }
-    if (filters.traineeId) {
-      filtered = filtered.filter((s) => s.traineeId === filters.traineeId);
-    }
-    if (filters.language) {
-      const l = filters.language.toLowerCase();
-      const norm = l === 'santali' ? 'sat' : l === 'hindi' ? 'hi' : l === 'english' ? 'en' : l;
-      filtered = filtered.filter((s) => {
-        const t = memoryStore.trainees.find((tr) => tr.traineeId === s.traineeId);
-        return t && t.language === norm;
+          assessments: true,
+          certificate: true,
+        },
+        orderBy: { startedAt: 'desc' },
+        take: filters.limit || 50,
       });
+    } catch (err: any) {
+      console.error('[PostgreSQL ERROR] Failed to fetch sessions:', err?.message || err);
+      throw new Error(`Database error fetching sessions: ${err?.message || 'Unknown error'}`);
     }
-
-    return filtered.slice(0, filters.limit || 50).map((s) => ({
-      ...s,
-      trainee: memoryStore.trainees.find((t) => t.traineeId === s.traineeId),
-      events: memoryStore.events.filter((e) => e.sessionId === s.sessionId).slice(0, 5),
-      assessments: memoryStore.assessments.filter((a) => a.sessionId === s.sessionId),
-      certificate: memoryStore.certificates.find((c) => c.certificateId === s.certificateId),
-    }));
   }
 
   async getSessionById(sessionId: string) {
-    if (isDatabaseConnected()) {
-      try {
-        const session = await prisma.trainingSession.findUnique({
-          where: { sessionId },
-          include: {
-            trainee: true,
-            events: {
-              orderBy: { timestamp: 'asc' },
-            },
-            assessments: true,
-            certificate: true,
+    try {
+      const session = await prisma.trainingSession.findUnique({
+        where: { sessionId },
+        include: {
+          trainee: true,
+          events: {
+            orderBy: { timestamp: 'asc' },
           },
-        });
-        if (session) return session;
-      } catch {}
-    }
+          assessments: true,
+          certificate: true,
+        },
+      });
 
-    const s = memoryStore.sessions.find((x) => x.sessionId === sessionId);
-    if (!s) {
-      throw new Error(`Training session not found with id: ${sessionId}`);
-    }
+      if (!session) {
+        throw new Error(`Training session not found with id: ${sessionId}`);
+      }
 
-    return {
-      ...s,
-      trainee: memoryStore.trainees.find((t) => t.traineeId === s.traineeId),
-      events: memoryStore.events.filter((e) => e.sessionId === s.sessionId),
-      assessments: memoryStore.assessments.filter((a) => a.sessionId === s.sessionId),
-      certificate: memoryStore.certificates.find((c) => c.certificateId === s.certificateId),
-    };
+      return session;
+    } catch (err: any) {
+      console.error(`[PostgreSQL ERROR] Failed to get session ${sessionId}:`, err?.message || err);
+      throw err;
+    }
   }
 }
 

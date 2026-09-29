@@ -1,5 +1,4 @@
-import { prisma, isDatabaseConnected } from '../prisma/client';
-import { memoryStore } from './store';
+import { prisma } from '../prisma/client';
 
 export class EventsService {
   async recordEvent(
@@ -16,72 +15,47 @@ export class EventsService {
 
     const eventDate = data.timestamp ? new Date(data.timestamp) : new Date();
 
-    if (isDatabaseConnected()) {
-      try {
-        const existingSession = await prisma.trainingSession.findUnique({
-          where: { sessionId },
-        });
+    try {
+      const existingSession = await prisma.trainingSession.findUnique({
+        where: { sessionId },
+      });
 
-        if (!existingSession) {
-          let trainee = await prisma.trainee.findFirst();
-          if (!trainee) {
-            trainee = await prisma.trainee.create({
-              data: {
-                traineeId: 'TR-AUTO-01',
-                name: 'SAFEX Field Operator',
-                language: 'sat',
-              },
-            });
-          }
-
-          await prisma.trainingSession.create({
+      if (!existingSession) {
+        let trainee = await prisma.trainee.findFirst();
+        if (!trainee) {
+          trainee = await prisma.trainee.create({
             data: {
-              sessionId,
-              traineeId: trainee.traineeId,
-              module: data.eventData?.module?.toUpperCase() || 'GAS',
-              status: 'IN_PROGRESS',
+              traineeId: 'TR-AUTO-01',
+              name: 'SAFEX Field Operator',
+              language: 'sat',
             },
           });
         }
 
-        const event = await prisma.trainingEvent.create({
+        await prisma.trainingSession.create({
           data: {
             sessionId,
-            eventType: data.eventType,
-            eventData: data.eventData || {},
-            timestamp: eventDate,
+            traineeId: trainee.traineeId,
+            module: data.eventData?.module?.toUpperCase() || 'GAS',
+            status: 'IN_PROGRESS',
           },
         });
+      }
 
-        memoryStore.addEvent({
+      const event = await prisma.trainingEvent.create({
+        data: {
           sessionId,
           eventType: data.eventType,
           eventData: data.eventData || {},
           timestamp: eventDate,
-        });
-
-        return event;
-      } catch {}
-    }
-
-    let s = memoryStore.sessions.find((x) => x.sessionId === sessionId);
-    if (!s) {
-      memoryStore.upsertSession({
-        sessionId,
-        traineeId: 'TR-2141',
-        module: data.eventData?.module?.toUpperCase() || 'GAS',
-        startedAt: eventDate,
+        },
       });
+
+      return event;
+    } catch (err: any) {
+      console.error(`[PostgreSQL ERROR] Failed to record event for session ${sessionId}:`, err?.message || err);
+      throw new Error(`Database error recording event: ${err?.message || 'Unknown error'}`);
     }
-
-    const evt = memoryStore.addEvent({
-      sessionId,
-      eventType: data.eventType,
-      eventData: data.eventData || {},
-      timestamp: eventDate,
-    });
-
-    return evt;
   }
 
   async recordBatchEvents(
@@ -101,47 +75,34 @@ export class EventsService {
   }
 
   async getEventsBySession(sessionId: string) {
-    if (isDatabaseConnected()) {
-      try {
-        return await prisma.trainingEvent.findMany({
-          where: { sessionId },
-          orderBy: { timestamp: 'asc' },
-        });
-      } catch {}
+    try {
+      return await prisma.trainingEvent.findMany({
+        where: { sessionId },
+        orderBy: { timestamp: 'asc' },
+      });
+    } catch (err: any) {
+      console.error(`[PostgreSQL ERROR] Failed to get events for session ${sessionId}:`, err?.message || err);
+      throw new Error(`Database error fetching events: ${err?.message || 'Unknown error'}`);
     }
-
-    return memoryStore.events.filter((e) => e.sessionId === sessionId);
   }
 
   async getRecentEvents(limit: number = 20) {
-    if (isDatabaseConnected()) {
-      try {
-        return await prisma.trainingEvent.findMany({
-          include: {
-            session: {
-              include: {
-                trainee: true,
-              },
+    try {
+      return await prisma.trainingEvent.findMany({
+        include: {
+          session: {
+            include: {
+              trainee: true,
             },
           },
-          orderBy: { timestamp: 'desc' },
-          take: limit,
-        });
-      } catch {}
-    }
-
-    return memoryStore.events
-      .slice()
-      .reverse()
-      .slice(0, limit)
-      .map((e) => {
-        const session = memoryStore.sessions.find((s) => s.sessionId === e.sessionId);
-        const trainee = session ? memoryStore.trainees.find((t) => t.traineeId === session.traineeId) : null;
-        return {
-          ...e,
-          session: session ? { ...session, trainee } : null,
-        };
+        },
+        orderBy: { timestamp: 'desc' },
+        take: limit,
       });
+    } catch (err: any) {
+      console.error('[PostgreSQL ERROR] Failed to get recent events:', err?.message || err);
+      throw new Error(`Database error fetching recent events: ${err?.message || 'Unknown error'}`);
+    }
   }
 }
 

@@ -1,5 +1,4 @@
-import { prisma, isDatabaseConnected } from '../prisma/client';
-import { memoryStore } from './store';
+import { prisma } from '../prisma/client';
 
 export class CertificatesService {
   async issueCertificate(data: {
@@ -15,7 +14,7 @@ export class CertificatesService {
       throw new Error('sessionId, traineeId, and module are required');
     }
 
-    let certId = data.certificateId;
+    let certId = data.certificateId ? String(data.certificateId).trim() : '';
     if (!certId) {
       const now = new Date();
       const yyyy = now.getFullYear();
@@ -30,55 +29,29 @@ export class CertificatesService {
     const scoreVal = Number(data.score) || 100;
     const percVal = Number(data.percentage) || 100;
 
-    if (isDatabaseConnected()) {
-      try {
-        const existingTrainee = await prisma.trainee.findUnique({
-          where: { traineeId: data.traineeId },
-        });
+    try {
+      const existingTrainee = await prisma.trainee.findUnique({
+        where: { traineeId: data.traineeId },
+      });
 
-        if (!existingTrainee) {
-          await prisma.trainee.create({
-            data: {
-              traineeId: data.traineeId,
-              name: `Trainee ${data.traineeId}`,
-              language: 'sat',
-            },
-          });
-        }
-
-        const certificate = await prisma.certificate.upsert({
-          where: { certificateId: certId },
-          update: {
-            score: scoreVal,
-            percentage: percVal,
-            status: normStatus,
-          },
-          create: {
-            certificateId: certId,
-            sessionId: data.sessionId,
+      if (!existingTrainee) {
+        await prisma.trainee.create({
+          data: {
             traineeId: data.traineeId,
-            module: normModule,
-            score: scoreVal,
-            percentage: percVal,
-            status: normStatus,
-          },
-          include: {
-            trainee: true,
+            name: `Trainee ${data.traineeId}`,
+            language: 'sat',
           },
         });
+      }
 
-        try {
-          await prisma.trainingSession.update({
-            where: { sessionId: data.sessionId },
-            data: {
-              certificateId: certId,
-              status: 'COMPLETED',
-              assessmentPassed: true,
-            },
-          });
-        } catch {}
-
-        memoryStore.upsertCertificate({
+      const certificate = await prisma.certificate.upsert({
+        where: { certificateId: certId },
+        update: {
+          score: scoreVal,
+          percentage: percVal,
+          status: normStatus,
+        },
+        create: {
           certificateId: certId,
           sessionId: data.sessionId,
           traineeId: data.traineeId,
@@ -86,128 +59,93 @@ export class CertificatesService {
           score: scoreVal,
           percentage: percVal,
           status: normStatus,
-        });
+        },
+        include: {
+          trainee: true,
+        },
+      });
 
-        memoryStore.updateSession(data.sessionId, {
-          certificateId: certId,
-          status: 'COMPLETED',
-          assessmentPassed: true,
+      try {
+        await prisma.trainingSession.update({
+          where: { sessionId: data.sessionId },
+          data: {
+            certificateId: certId,
+            status: 'COMPLETED',
+            assessmentPassed: true,
+          },
         });
+      } catch (sessErr: any) {
+        console.warn(`[CertificatesService] Notice: Session ${data.sessionId} update skipped:`, sessErr?.message);
+      }
 
-        return certificate;
-      } catch {}
+      console.log(`[PostgreSQL] Certificate issued & persisted: ${certId}`);
+      return certificate;
+    } catch (err: any) {
+      console.error(`[PostgreSQL ERROR] Failed to issue certificate ${certId}:`, err?.message || err);
+      throw new Error(`Database error issuing certificate: ${err?.message || 'Unknown error'}`);
     }
-
-    const cert = memoryStore.upsertCertificate({
-      certificateId: certId,
-      sessionId: data.sessionId,
-      traineeId: data.traineeId,
-      module: normModule,
-      score: scoreVal,
-      percentage: percVal,
-      status: normStatus,
-    });
-
-    memoryStore.updateSession(data.sessionId, {
-      certificateId: certId,
-      status: 'COMPLETED',
-      assessmentPassed: true,
-    });
-
-    return {
-      ...cert,
-      trainee: memoryStore.trainees.find((t) => t.traineeId === data.traineeId),
-    };
   }
 
   async getCertificates() {
-    if (isDatabaseConnected()) {
-      try {
-        return await prisma.certificate.findMany({
-          include: {
-            trainee: true,
-            sessions: true,
-          },
-          orderBy: { issuedAt: 'desc' },
-        });
-      } catch {}
+    try {
+      return await prisma.certificate.findMany({
+        include: {
+          trainee: true,
+          sessions: true,
+        },
+        orderBy: { issuedAt: 'desc' },
+      });
+    } catch (err: any) {
+      console.error('[PostgreSQL ERROR] Failed to fetch certificates:', err?.message || err);
+      throw new Error(`Database error fetching certificates: ${err?.message || 'Unknown error'}`);
     }
-
-    return memoryStore.certificates.map((c) => ({
-      ...c,
-      trainee: memoryStore.trainees.find((t) => t.traineeId === c.traineeId),
-      sessions: memoryStore.sessions.filter((s) => s.certificateId === c.certificateId),
-    }));
   }
 
   async getCertificateById(certificateId: string) {
-    if (isDatabaseConnected()) {
-      try {
-        const cert = await prisma.certificate.findUnique({
-          where: { certificateId },
-          include: {
-            trainee: true,
-            sessions: {
-              include: {
-                assessments: true,
-                events: {
-                  orderBy: { timestamp: 'asc' },
-                },
+    const certId = String(certificateId).trim();
+    try {
+      const cert = await prisma.certificate.findUnique({
+        where: { certificateId: certId },
+        include: {
+          trainee: true,
+          sessions: {
+            include: {
+              assessments: true,
+              events: {
+                orderBy: { timestamp: 'asc' },
               },
             },
           },
-        });
+        },
+      });
 
-        if (cert) {
-          return {
-            certificateId: cert.certificateId,
-            traineeId: cert.traineeId,
-            traineeName: cert.trainee?.name || 'Unknown',
-            language: cert.trainee?.language || 'sat',
-            module: cert.module,
-            moduleName: cert.module === 'FIRE' ? 'Fire & Explosion' : 'Gas & Confined Space',
-            score: cert.score,
-            percentage: cert.percentage,
-            status: cert.status,
-            issuedAt: cert.issuedAt,
-            verified: cert.status === 'PASSED',
-            verificationDetails: {
-              issuer: 'SAFEX Industrial Safety Command Center',
-              complianceStandard: 'ISO 45001 / OSHA 1910 Mining & Hazardous Safety',
-              qrVerificationCode: cert.certificateId,
-              issuedDateFormatted: cert.issuedAt.toISOString().split('T')[0],
-            },
-          };
-        }
-      } catch {}
+      if (!cert) {
+        throw new Error(`Certificate not found with ID: ${certId}`);
+      }
+
+      return {
+        certificateId: cert.certificateId,
+        traineeId: cert.traineeId,
+        traineeName: cert.trainee?.name || 'Trainee',
+        language: cert.trainee?.language || 'sat',
+        module: cert.module,
+        moduleName: cert.module === 'FIRE' ? 'Fire & Explosion' : 'Gas & Confined Space',
+        score: cert.score,
+        percentage: cert.percentage,
+        status: cert.status,
+        issuedAt: cert.issuedAt,
+        verified: cert.status === 'PASSED',
+        verificationDetails: {
+          issuer: 'SAFEX Industrial Safety Command Center',
+          complianceStandard: 'ISO 45001 / OSHA 1910 Mining & Hazardous Safety',
+          qrVerificationCode: cert.certificateId,
+          issuedDateFormatted: cert.issuedAt instanceof Date ? cert.issuedAt.toISOString().split('T')[0] : String(cert.issuedAt).split('T')[0],
+        },
+      };
+    } catch (err: any) {
+      console.error(`[PostgreSQL ERROR] Failed to get certificate ${certId}:`, err?.message || err);
+      throw err;
     }
-
-    const c = memoryStore.certificates.find((x) => x.certificateId === certificateId);
-    if (!c) {
-      throw new Error(`Certificate not found with ID: ${certificateId}`);
-    }
-
-    const trainee = memoryStore.trainees.find((t) => t.traineeId === c.traineeId);
-
-    return {
-      certificateId: c.certificateId,
-      traineeId: c.traineeId,
-      traineeName: trainee?.name || 'Asha Soren',
-      language: trainee?.language || 'sat',
-      module: c.module,
-      moduleName: c.module === 'FIRE' ? 'Fire & Explosion' : 'Gas & Confined Space',
-      score: c.score,
-      percentage: c.percentage,
-      status: c.status,
-      issuedAt: c.issuedAt,
-      verified: c.status === 'PASSED',
-      verificationDetails: {
-        issuer: 'SAFEX Industrial Safety Command Center',
-        complianceStandard: 'ISO 45001 / OSHA 1910 Mining & Hazardous Safety',
-        qrVerificationCode: c.certificateId,
-        issuedDateFormatted: c.issuedAt.split('T')[0],
-      },
-    };
   }
 }
 

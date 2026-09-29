@@ -18,9 +18,11 @@ export class TraineesController {
         data: result,
       });
     } catch (err: any) {
-      res.status(400).json({
+      console.error('[TraineesController.upsert Error]', err?.message || err);
+      const isValidationError = err.message && err.message.includes('required');
+      res.status(isValidationError ? 400 : 500).json({
         success: false,
-        message: err.message || 'Failed to upsert trainee',
+        message: err.message || 'Failed to upsert trainee in PostgreSQL',
       });
     }
   }
@@ -33,9 +35,10 @@ export class TraineesController {
         data: trainees,
       });
     } catch (err: any) {
+      console.error('[TraineesController.getAll Error]', err?.message || err);
       res.status(500).json({
         success: false,
-        message: err.message || 'Failed to fetch trainees',
+        message: err.message || 'Failed to fetch trainees from PostgreSQL',
       });
     }
   }
@@ -49,9 +52,11 @@ export class TraineesController {
         data: trainee,
       });
     } catch (err: any) {
-      res.status(404).json({
+      console.error('[TraineesController.getById Error]', err?.message || err);
+      const isNotFound = err.message && err.message.includes('not found');
+      res.status(isNotFound ? 404 : 500).json({
         success: false,
-        message: err.message || 'Trainee not found',
+        message: err.message || 'Trainee not found in PostgreSQL',
       });
     }
   }

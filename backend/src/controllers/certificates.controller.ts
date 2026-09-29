@@ -21,9 +21,11 @@ export class CertificatesController {
         data: certificate,
       });
     } catch (err: any) {
-      res.status(400).json({
+      console.error('[CertificatesController.issue Error]', err?.message || err);
+      const isValidationError = err.message && err.message.includes('required');
+      res.status(isValidationError ? 400 : 500).json({
         success: false,
-        message: err.message || 'Failed to issue certificate',
+        message: err.message || 'Failed to issue certificate in PostgreSQL',
       });
     }
   }
@@ -36,9 +38,10 @@ export class CertificatesController {
         data: certificates,
       });
     } catch (err: any) {
+      console.error('[CertificatesController.getAll Error]', err?.message || err);
       res.status(500).json({
         success: false,
-        message: err.message || 'Failed to fetch certificates',
+        message: err.message || 'Failed to fetch certificates from PostgreSQL',
       });
     }
   }
@@ -53,9 +56,11 @@ export class CertificatesController {
         data: certificate,
       });
     } catch (err: any) {
-      res.status(404).json({
+      console.error('[CertificatesController.getById Error]', err?.message || err);
+      const isNotFound = err.message && err.message.includes('not found');
+      res.status(isNotFound ? 404 : 500).json({
         success: false,
-        message: err.message || 'Certificate not found',
+        message: err.message || 'Certificate not found in PostgreSQL',
       });
     }
   }

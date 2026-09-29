@@ -1,5 +1,4 @@
-import { prisma, isDatabaseConnected } from '../prisma/client';
-import { memoryStore } from './store';
+import { prisma } from '../prisma/client';
 
 export class AssessmentsService {
   async recordAssessment(data: {
@@ -20,124 +19,81 @@ export class AssessmentsService {
     const durVal = Number(data.durationSeconds) || 0;
     const passedVal = Boolean(data.passed);
 
-    if (isDatabaseConnected()) {
-      try {
-        const existingSession = await prisma.trainingSession.findUnique({
-          where: { sessionId: data.sessionId },
-        });
+    try {
+      const existingSession = await prisma.trainingSession.findUnique({
+        where: { sessionId: data.sessionId },
+      });
 
-        if (!existingSession) {
-          let trainee = await prisma.trainee.findFirst();
-          if (!trainee) {
-            trainee = await prisma.trainee.create({
-              data: {
-                traineeId: 'TR-AUTO-01',
-                name: 'SAFEX Field Operator',
-                language: 'sat',
-              },
-            });
-          }
-
-          await prisma.trainingSession.create({
+      if (!existingSession) {
+        let trainee = await prisma.trainee.findFirst();
+        if (!trainee) {
+          trainee = await prisma.trainee.create({
             data: {
-              sessionId: data.sessionId,
-              traineeId: trainee.traineeId,
-              module: normModule,
-              status: passedVal ? 'COMPLETED' : 'FAILED',
-              assessmentPassed: passedVal,
-              durationSeconds: durVal,
-              completedAt: new Date(),
-            },
-          });
-        } else {
-          await prisma.trainingSession.update({
-            where: { sessionId: data.sessionId },
-            data: {
-              assessmentPassed: passedVal,
-              durationSeconds: durVal || existingSession.durationSeconds,
-              status: passedVal ? 'COMPLETED' : 'FAILED',
-              completedAt: new Date(),
+              traineeId: 'TR-AUTO-01',
+              name: 'SAFEX Field Operator',
+              language: 'sat',
             },
           });
         }
 
-        const assessment = await prisma.assessment.create({
+        await prisma.trainingSession.create({
           data: {
             sessionId: data.sessionId,
+            traineeId: trainee.traineeId,
             module: normModule,
-            completedActions: data.completedActions || [],
-            requiredActions: data.requiredActions ? data.requiredActions : undefined,
-            passed: passedVal,
-            score: scoreVal,
+            status: passedVal ? 'COMPLETED' : 'FAILED',
+            assessmentPassed: passedVal,
             durationSeconds: durVal,
+            completedAt: new Date(),
           },
         });
+      } else {
+        await prisma.trainingSession.update({
+          where: { sessionId: data.sessionId },
+          data: {
+            assessmentPassed: passedVal,
+            durationSeconds: durVal || existingSession.durationSeconds,
+            status: passedVal ? 'COMPLETED' : 'FAILED',
+            completedAt: new Date(),
+          },
+        });
+      }
 
-        memoryStore.addAssessment({
+      const assessment = await prisma.assessment.create({
+        data: {
           sessionId: data.sessionId,
           module: normModule,
           completedActions: data.completedActions || [],
-          requiredActions: data.requiredActions,
+          requiredActions: data.requiredActions ? data.requiredActions : undefined,
           passed: passedVal,
           score: scoreVal,
           durationSeconds: durVal,
-        });
+        },
+      });
 
-        memoryStore.updateSession(data.sessionId, {
-          assessmentPassed: passedVal,
-          durationSeconds: durVal,
-          status: passedVal ? 'COMPLETED' : 'FAILED',
-          completedAt: new Date().toISOString(),
-        });
-
-        return assessment;
-      } catch {}
+      return assessment;
+    } catch (err: any) {
+      console.error(`[PostgreSQL ERROR] Failed to record assessment for session ${data.sessionId}:`, err?.message || err);
+      throw new Error(`Database error recording assessment: ${err?.message || 'Unknown error'}`);
     }
-
-    memoryStore.updateSession(data.sessionId, {
-      assessmentPassed: passedVal,
-      durationSeconds: durVal,
-      status: passedVal ? 'COMPLETED' : 'FAILED',
-      completedAt: new Date().toISOString(),
-    });
-
-    const item = memoryStore.addAssessment({
-      sessionId: data.sessionId,
-      module: normModule,
-      completedActions: data.completedActions || [],
-      requiredActions: data.requiredActions,
-      passed: passedVal,
-      score: scoreVal,
-      durationSeconds: durVal,
-    });
-
-    return item;
   }
 
   async getAssessments() {
-    if (isDatabaseConnected()) {
-      try {
-        return await prisma.assessment.findMany({
-          include: {
-            session: {
-              include: {
-                trainee: true,
-              },
+    try {
+      return await prisma.assessment.findMany({
+        include: {
+          session: {
+            include: {
+              trainee: true,
             },
           },
-          orderBy: { createdAt: 'desc' },
-        });
-      } catch {}
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+    } catch (err: any) {
+      console.error('[PostgreSQL ERROR] Failed to fetch assessments:', err?.message || err);
+      throw new Error(`Database error fetching assessments: ${err?.message || 'Unknown error'}`);
     }
-
-    return memoryStore.assessments.map((a) => {
-      const session = memoryStore.sessions.find((s) => s.sessionId === a.sessionId);
-      const trainee = session ? memoryStore.trainees.find((t) => t.traineeId === session.traineeId) : null;
-      return {
-        ...a,
-        session: session ? { ...session, trainee } : null,
-      };
-    });
   }
 }
 

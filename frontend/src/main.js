@@ -202,7 +202,10 @@ function badge(s) {
 async function apiGet(endpoint) {
   try {
     const res = await fetch(`${API_BASE}${endpoint}`, {
-      headers: { 'Accept': 'application/json' }
+      headers: {
+        'Accept': 'application/json',
+        'X-SAFEX-API-KEY': 'SAFEX-AR-SAFETY-KEY-2026'
+      }
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const json = await res.json();
@@ -227,6 +230,302 @@ async function apiPost(endpoint, body) {
   } catch (err) {
     return { success: false, message: err.message };
   }
+}
+
+// ==================================================
+// QR CODE PARSING & EXTRACTION
+// ==================================================
+function parseCertificateQR(data) {
+  if (!data || typeof data !== 'string') return null;
+  const text = data.trim();
+  if (!text) return null;
+
+  // 1. JSON structure: {"certificateId":"...", ...} or {"id":"..."}
+  try {
+    const parsed = JSON.parse(text);
+    if (parsed && typeof parsed === 'object') {
+      const id = parsed.certificateId || parsed.id || parsed.certId;
+      if (id && typeof id === 'string') return id.trim();
+    }
+  } catch {}
+
+  // 2. Structured text with explicit label: "ID: SAFEX-..." or "CERTIFICATE ID: ..."
+  const labelMatch = text.match(/(?:CERTIFICATE\s*ID|CERT\s*ID|^ID|[\r\n]ID)[:=\s]+([A-Za-z0-9_-]+)/i);
+  if (labelMatch && labelMatch[1]) {
+    return labelMatch[1].trim();
+  }
+
+  // 3. SAFEX standard ID format: SAFEX-YYYYMMDD-###### or SAFEX-[alphanumeric]
+  const safexMatch = text.match(/SAFEX-[A-Za-z0-9_-]+/i);
+  if (safexMatch) {
+    return safexMatch[0].trim();
+  }
+
+  // 4. URL format: http(s)://...?cert=... or ?certificateId=... or /certificates/SAFEX-...
+  try {
+    if (text.startsWith('http://') || text.startsWith('https://')) {
+      const url = new URL(text);
+      const qCert = url.searchParams.get('cert') || url.searchParams.get('certificateId') || url.searchParams.get('id');
+      if (qCert) return qCert.trim();
+
+      const parts = url.pathname.split('/').filter(Boolean);
+      const last = parts[parts.length - 1];
+      if (last && /^SAFEX-[A-Za-z0-9_-]+$/i.test(last)) {
+        return last.trim();
+      }
+    }
+  } catch {}
+
+  // 5. Fallback: single token alphanumeric string of valid certificate length
+  if (/^[A-Za-z0-9_-]{6,36}$/.test(text)) {
+    return text;
+  }
+
+  return null;
+}
+
+// Dynamic html5-qrcode loader
+async function ensureHtml5Qrcode() {
+  if (typeof window !== 'undefined' && window.Html5Qrcode) {
+    return window.Html5Qrcode;
+  }
+  return new Promise((resolve, reject) => {
+    const existing = document.querySelector('script[src*="html5-qrcode"]');
+    if (existing) {
+      if (window.Html5Qrcode) return resolve(window.Html5Qrcode);
+      existing.addEventListener('load', () => resolve(window.Html5Qrcode));
+      existing.addEventListener('error', () => reject(new Error('Failed to load html5-qrcode library')));
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = 'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js';
+    script.async = true;
+    script.onload = () => resolve(window.Html5Qrcode);
+    script.onerror = () => reject(new Error('Failed to load html5-qrcode from CDN'));
+    document.head.appendChild(script);
+  });
+}
+
+// Live Scanner State
+let html5QrScannerInstance = null;
+
+async function startQrScanner() {
+  const statusEl = document.querySelector('#qr-camera-status');
+  const errorView = document.querySelector('#qr-error-view');
+  const errorTitle = document.querySelector('#qr-error-title');
+  const errorMsg = document.querySelector('#qr-error-msg');
+  const reticle = document.querySelector('#qr-reticle');
+
+  if (errorView) errorView.style.display = 'none';
+  if (reticle) reticle.style.display = 'flex';
+  if (statusEl) {
+    statusEl.textContent = 'Requesting camera permission...';
+    statusEl.style.color = '#5ed8c4';
+  }
+
+  try {
+    const Html5QrcodeClass = await ensureHtml5Qrcode();
+    if (!Html5QrcodeClass) {
+      throw new Error('Camera scanner library not available.');
+    }
+
+    await stopQrScanner();
+
+    // Verify cameras are available
+    let cameras = [];
+    try {
+      cameras = await Html5QrcodeClass.getCameras();
+    } catch (camErr) {
+      console.warn('[QR Scanner] Error getting cameras list:', camErr);
+    }
+
+    if (!cameras || cameras.length === 0) {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        if (errorView) {
+          errorView.style.display = 'flex';
+          if (reticle) reticle.style.display = 'none';
+          if (errorTitle) errorTitle.textContent = 'No Camera Available';
+          if (errorMsg) errorMsg.textContent = 'No camera available. Use manual certificate ID verification.';
+        }
+        return;
+      }
+    }
+
+    html5QrScannerInstance = new Html5QrcodeClass('safex-qr-reader', false);
+
+    const onScanSuccess = async (decodedText) => {
+      console.log('[SAFEX QR] Decoded raw content:', decodedText);
+      const certId = parseCertificateQR(decodedText);
+
+      if (!certId) {
+        if (statusEl) {
+          statusEl.textContent = 'Invalid QR: No SAFEX certificate ID';
+          statusEl.style.color = '#e4544a';
+        }
+        toast('Invalid QR: Could not extract SAFEX certificate ID', false);
+        return;
+      }
+
+      toast(`QR detected: ${certId}`);
+      if (statusEl) {
+        statusEl.textContent = `Detected: ${certId}`;
+        statusEl.style.color = '#5ed8c4';
+      }
+
+      // Stop camera and close scanner modal immediately
+      await stopQrScanner();
+      closeQrScannerModal();
+
+      // Trigger automatic verification
+      await performCertificateVerification(certId);
+    };
+
+    const qrConfig = {
+      fps: 15,
+      qrbox: { width: 220, height: 220 },
+      aspectRatio: 1.0,
+    };
+
+    await html5QrScannerInstance.start(
+      { facingMode: 'environment' },
+      qrConfig,
+      onScanSuccess,
+      () => {}
+    );
+
+    if (statusEl) {
+      statusEl.textContent = 'Point camera at SAFEX QR';
+      statusEl.style.color = '#829297';
+    }
+  } catch (err) {
+    console.error('[QR Scanner] Camera start failed:', err);
+    await stopQrScanner();
+
+    if (errorView) {
+      errorView.style.display = 'flex';
+      if (reticle) reticle.style.display = 'none';
+      const msg = String(err?.message || err);
+      const isDenied = msg.includes('Permission') || msg.includes('denied') || msg.includes('NotAllowedError');
+      if (isDenied) {
+        if (errorTitle) errorTitle.textContent = 'Camera Permission Required';
+        if (errorMsg) errorMsg.textContent = 'Camera permission is required to scan QR codes.';
+      } else {
+        if (errorTitle) errorTitle.textContent = 'No Camera Available';
+        if (errorMsg) errorMsg.textContent = 'No camera available. Use manual certificate ID verification.';
+      }
+    }
+  }
+}
+
+async function stopQrScanner() {
+  if (html5QrScannerInstance) {
+    try {
+      if (html5QrScannerInstance.isScanning) {
+        await html5QrScannerInstance.stop();
+      }
+      html5QrScannerInstance.clear();
+    } catch (e) {
+      console.warn('[QR Scanner Stop Error]', e);
+    }
+    html5QrScannerInstance = null;
+  }
+}
+
+function openQrScannerModal() {
+  const overlay = document.querySelector('#overlay-root');
+  if (!overlay) return;
+
+  overlay.innerHTML = `
+    <div class="modal-backdrop" id="qr-modal-backdrop" data-action="close-qr-scanner">
+      <div class="modal qr-scanner-modal" onclick="event.stopPropagation()">
+        <div class="modal-head">
+          <div>
+            <div class="eyebrow" style="color:#5ed8c4;margin-bottom:4px;">CAMERA VERIFICATION · REAL-TIME OPTICAL SCAN</div>
+            <h2>SCAN QR CODE</h2>
+          </div>
+          <button class="icon-button" data-action="close-qr-scanner" aria-label="Close scanner" style="width:32px;height:32px;">
+            ${icon('close', 16)}
+          </button>
+        </div>
+        <p class="modal-intro" style="margin-bottom:14px;">Point camera at SAFEX QR to verify certificate authenticity in real time.</p>
+
+        <div class="qr-camera-viewport">
+          <div id="safex-qr-reader"></div>
+
+          <div class="qr-target-overlay" id="qr-reticle">
+            <div class="qr-scan-box">
+              <div style="position:absolute;top:-2px;left:-2px;width:26px;height:26px;border-top:3px solid #5ed8c4;border-left:3px solid #5ed8c4;border-top-left-radius:6px;"></div>
+              <div style="position:absolute;top:-2px;right:-2px;width:26px;height:26px;border-top:3px solid #5ed8c4;border-right:3px solid #5ed8c4;border-top-right-radius:6px;"></div>
+              <div style="position:absolute;bottom:-2px;left:-2px;width:26px;height:26px;border-bottom:3px solid #5ed8c4;border-left:3px solid #5ed8c4;border-bottom-left-radius:6px;"></div>
+              <div style="position:absolute;bottom:-2px;right:-2px;width:26px;height:26px;border-bottom:3px solid #5ed8c4;border-right:3px solid #5ed8c4;border-bottom-right-radius:6px;"></div>
+              <div class="qr-laser-line"></div>
+            </div>
+            <div id="qr-camera-status" style="margin-top:14px;font-family:'DM Mono',monospace;font-size:11px;color:#829297;background:rgba(5,8,10,0.85);padding:4px 14px;border-radius:4px;border:1px solid rgba(255,255,255,0.08);">
+              Point camera at SAFEX QR
+            </div>
+          </div>
+
+          <div id="qr-error-view" style="display:none;position:absolute;inset:0;padding:24px;background:#0d1417;flex-direction:column;align-items:center;justify-content:center;text-align:center;z-index:10;">
+            <div style="width:48px;height:48px;border-radius:50%;background:rgba(228,84,74,0.12);color:#e4544a;display:flex;align-items:center;justify-content:center;margin-bottom:12px;">
+              ${icon('alert', 24)}
+            </div>
+            <b id="qr-error-title" style="color:#f4f5f2;font-size:14px;margin-bottom:6px;">Camera Access Required</b>
+            <p id="qr-error-msg" style="color:#7d8e93;font-size:11.5px;max-width:320px;line-height:1.5;">Camera permission is required to scan QR codes.</p>
+            <button type="button" class="secondary-button" style="margin-top:16px;height:34px;padding:0 14px;" data-action="retry-camera">
+              ${icon('refresh', 13)} Retry Camera
+            </button>
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:16px;">
+          <span style="font-size:11px;color:#7d8e93;">Live browser camera stream</span>
+          <button type="button" class="secondary-button" data-action="close-qr-scanner" style="height:36px;padding:0 18px;">
+            Close Scanner
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  setTimeout(() => {
+    startQrScanner();
+  }, 50);
+}
+
+function closeQrScannerModal() {
+  stopQrScanner();
+  const overlay = document.querySelector('#overlay-root');
+  if (overlay) overlay.innerHTML = '';
+}
+
+async function performCertificateVerification(certId) {
+  if (!certId) return;
+  const tid = String(certId).trim();
+  verifySearchQuery = tid;
+  toast('Verifying certificate in PostgreSQL records...');
+
+  const cert = await apiGet(`/api/certificates/${encodeURIComponent(tid)}`);
+  if (cert) {
+    verifySearchResult = {
+      found: true,
+      verified: true,
+      ...cert
+    };
+    toast('✓ Certificate verified successfully!');
+  } else {
+    verifySearchResult = {
+      found: false,
+      verified: false,
+      certificateId: tid
+    };
+    toast('✕ Certificate not found in PostgreSQL records', false);
+  }
+  render();
+
+  setTimeout(() => {
+    const resEl = document.querySelector('#verification-result-card');
+    if (resEl) resEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, 100);
 }
 
 // Data Synchronizer
@@ -1103,37 +1402,87 @@ function renderCertificatesPage() {
 
     <!-- Lookup Form -->
     <div class="page-table-panel" style="padding:18px 20px;margin-bottom:20px;">
-      <div style="margin-bottom:10px;">
+      <div style="margin-bottom:12px;">
         <strong style="font-family:'Barlow Condensed',sans-serif;font-size:18px;color:#f4f5f2;">Instant QR / Credential Lookup</strong>
-        <p style="font-size:11px;color:#829297;margin:2px 0 0;">Enter any SAFEX certificate ID to verify authenticity directly against PostgreSQL records.</p>
+        <p style="font-size:11px;color:#829297;margin:2px 0 0;">Enter any SAFEX certificate ID or scan an on-site QR code to verify authenticity directly against PostgreSQL records.</p>
       </div>
 
-      <form id="verify-form" style="display:flex;gap:10px;align-items:center;max-width:600px;">
-        <input id="verify-input" type="text" placeholder="e.g. SAFEX-20260928-842103" value="${esc(verifySearchQuery)}" required style="flex:1;height:38px;border-radius:7px;border:1px solid var(--border);background:#0b1215;color:#f4f5f2;padding:0 12px;font-size:11.5px;">
-        <button class="primary-button" type="submit">${icon('search', 14)} Verify</button>
-      </form>
+      <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;">
+        <form id="verify-form" style="display:flex;gap:10px;align-items:center;flex:1;min-width:280px;max-width:540px;">
+          <input id="verify-input" type="text" placeholder="e.g. SAFEX-20260928-842103" value="${esc(verifySearchQuery)}" required style="flex:1;height:38px;border-radius:7px;border:1px solid var(--border);background:#0b1215;color:#f4f5f2;padding:0 12px;font-size:11.5px;">
+          <button class="primary-button" type="submit" id="btn-verify-submit">${icon('search', 14)} Verify</button>
+        </form>
+        <button type="button" class="primary-button" id="btn-scan-qr" data-action="open-qr-scanner" style="background:#154646;border:1px solid #5ed8c4;color:#e2ffff;display:inline-flex;align-items:center;gap:8px;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:0.04em;padding:0 16px;height:38px;border-radius:7px;transition:all 0.15s ease;">
+          ${icon('scan', 16)} SCAN QR CODE
+        </button>
+      </div>
 
-      ${verifySearchResult ? `
-        <div style="margin-top:16px;padding:16px;border:1px solid rgba(94,216,196,0.35);border-radius:10px;background:rgba(94,216,196,0.05);">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-            <b style="color:#5ed8c4;font-size:12.5px;letter-spacing:0.05em;">✓ OFFICIAL SAFEX CERTIFICATE VERIFIED</b>
-            <span class="status-pill good"><i></i>${esc(verifySearchResult.status || 'VERIFIED')}</span>
+      ${verifySearchResult ? (
+        verifySearchResult.found ? `
+          <div id="verification-result-card" style="margin-top:18px;padding:20px 22px;border:1px solid rgba(94,216,196,0.35);border-radius:10px;background:rgba(94,216,196,0.06);">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid rgba(94,216,196,0.18);">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:#5ed8c4;color:#0a0f12;font-size:16px;font-weight:900;">✓</span>
+                <div>
+                  <b style="color:#5ed8c4;font-family:'Barlow Condensed',sans-serif;font-size:20px;letter-spacing:0.04em;">VERIFIED CERTIFICATE</b>
+                  <div style="font-size:11px;color:#839296;">Record confirmed authentic in SAFEX PostgreSQL database</div>
+                </div>
+              </div>
+              <span class="status-pill good"><i></i>VERIFIED</span>
+            </div>
+
+            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(160px, 1fr));gap:16px;font-size:11.5px;">
+              <div>
+                <span style="color:#7d8f95;display:block;margin-bottom:2px;font-size:10px;text-transform:uppercase;letter-spacing:0.06em;">Certificate ID</span>
+                <b style="font-family:'DM Mono',monospace;color:#f3a42b;font-size:13px;">${esc(verifySearchResult.certificateId)}</b>
+              </div>
+              <div>
+                <span style="color:#7d8f95;display:block;margin-bottom:2px;font-size:10px;text-transform:uppercase;letter-spacing:0.06em;">Employee / Trainee</span>
+                <b style="font-size:13px;color:#f4f5f2;">${esc(verifySearchResult.traineeName || (verifySearchResult.trainee ? verifySearchResult.trainee.name : 'Trainee'))}</b>
+                ${verifySearchResult.traineeId ? `<small style="display:block;color:#7d8f95;font-family:'DM Mono',monospace;">ID: ${esc(verifySearchResult.traineeId)}</small>` : ''}
+              </div>
+              <div>
+                <span style="color:#7d8f95;display:block;margin-bottom:2px;font-size:10px;text-transform:uppercase;letter-spacing:0.06em;">Training Module</span>
+                <b style="font-size:13px;color:#f4f5f2;">${esc(verifySearchResult.moduleName || verifySearchResult.module)}</b>
+              </div>
+              <div>
+                <span style="color:#7d8f95;display:block;margin-bottom:2px;font-size:10px;text-transform:uppercase;letter-spacing:0.06em;">Completion Status</span>
+                <b style="color:#5ed8c4;font-size:13px;">${esc(verifySearchResult.status || 'PASSED')} (${verifySearchResult.score ?? 100}%)</b>
+              </div>
+              <div>
+                <span style="color:#7d8f95;display:block;margin-bottom:2px;font-size:10px;text-transform:uppercase;letter-spacing:0.06em;">Issued Date</span>
+                <b style="font-size:13px;color:#f4f5f2;">${esc(verifySearchResult.verificationDetails?.issuedDateFormatted || formatRelativeTime(verifySearchResult.issuedAt))}</b>
+              </div>
+              <div>
+                <span style="color:#7d8f95;display:block;margin-bottom:2px;font-size:10px;text-transform:uppercase;letter-spacing:0.06em;">Compliance Standard</span>
+                <span style="color:#8ba0a6;font-size:11px;">ISO 45001 / OSHA 1910</span>
+              </div>
+            </div>
+
+            <div style="margin-top:16px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.06);display:flex;justify-content:flex-end;">
+              <button class="primary-button" style="height:30px;padding:0 14px;font-size:11px;" data-view-cert-object='${esc(JSON.stringify(verifySearchResult))}'>
+                View Certificate Document
+              </button>
+            </div>
           </div>
-          <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:12px;font-size:11px;">
-            <div><span style="color:#7d8f95;">Trainee:</span> <b>${esc(verifySearchResult.traineeName || (verifySearchResult.trainee ? verifySearchResult.trainee.name : 'Trainee'))}</b></div>
-            <div><span style="color:#7d8f95;">Module:</span> <b>${esc(verifySearchResult.moduleName || verifySearchResult.module)}</b></div>
-            <div><span style="color:#7d8f95;">Score:</span> <b style="color:#5ed8c4;">${verifySearchResult.score}%</b></div>
-            <div><span style="color:#7d8f95;">Certificate ID:</span> <b style="font-family:'DM Mono',monospace;color:#f3a42b;">${esc(verifySearchResult.certificateId)}</b></div>
-            <div><span style="color:#7d8f95;">Language:</span> <b>${esc(formatLanguage(verifySearchResult.language))}</b></div>
-            <div><span style="color:#7d8f95;">Status:</span> <b>DGMS Compliant</b></div>
+        ` : `
+          <div id="verification-result-card" style="margin-top:18px;padding:20px 22px;border:1px solid rgba(228,84,74,0.35);border-radius:10px;background:rgba(228,84,74,0.06);">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:#e4544a;color:#ffffff;font-size:16px;font-weight:900;">✕</span>
+                <div>
+                  <b style="color:#e4544a;font-family:'Barlow Condensed',sans-serif;font-size:20px;letter-spacing:0.04em;">CERTIFICATE NOT FOUND</b>
+                  <div style="font-size:11px;color:#9b8f8e;">Certificate record could not be verified against the SAFEX PostgreSQL records.</div>
+                </div>
+              </div>
+              <span class="status-pill warn"><i></i>NOT FOUND</span>
+            </div>
+            <p style="font-size:11.5px;color:#8ba0a6;margin:8px 0 0;line-height:1.5;">
+              The certificate ID <strong style="font-family:'DM Mono',monospace;color:#f3a42b;">${esc(verifySearchResult.certificateId || verifySearchQuery)}</strong> could not be verified against the SAFEX PostgreSQL records. Please check the ID or re-scan the QR code.
+            </p>
           </div>
-          <div style="margin-top:12px;text-align:right;">
-            <button class="primary-button" style="height:30px;padding:0 10px;font-size:10px;" data-view-cert-object='${esc(JSON.stringify(verifySearchResult))}'>
-              View Certificate Modal
-            </button>
-          </div>
-        </div>
-      ` : ''}
+        `
+      ) : ''}
     </div>
 
     <div class="page-toolbar">
@@ -1673,6 +2022,7 @@ function render() {
 }
 
 function setPage(page) {
+  stopQrScanner();
   currentPage = page;
   searchTerm = '';
   verifySearchResult = null;
@@ -1745,6 +2095,19 @@ document.addEventListener('click', async (e) => {
   const actBtn = e.target.closest('[data-action]');
   if (actBtn) {
     const action = actBtn.dataset.action;
+
+    if (action === 'open-qr-scanner') {
+      openQrScannerModal();
+      return;
+    }
+    if (action === 'close-qr-scanner') {
+      closeQrScannerModal();
+      return;
+    }
+    if (action === 'retry-camera') {
+      startQrScanner();
+      return;
+    }
 
     if (action === 'open-nav') {
       document.querySelector('#sidebar')?.classList.add('open');
@@ -1831,6 +2194,11 @@ document.addEventListener('click', async (e) => {
   }
 });
 
+// Window unload handler to stop camera stream
+window.addEventListener('beforeunload', () => {
+  stopQrScanner();
+});
+
 // Form Submissions
 document.addEventListener('submit', async (e) => {
   // Verify Form
@@ -1840,16 +2208,7 @@ document.addEventListener('submit', async (e) => {
     const certId = input?.value.trim();
     if (!certId) return;
 
-    verifySearchQuery = certId;
-    toast('Searching certificate record...');
-    const cert = await apiGet(`/api/certificates/${certId}`);
-    if (cert) {
-      verifySearchResult = cert;
-      render();
-      toast('Certificate found and verified!');
-    } else {
-      toast('No certificate record found with ID: ' + certId, false);
-    }
+    await performCertificateVerification(certId);
     return;
   }
 
