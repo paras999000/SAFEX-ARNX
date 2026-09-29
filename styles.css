@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700;800&family=Caveat:wght@500;600&family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Oxanium:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700;800&family=Caveat:wght@500;600&family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600;700&family=Noto+Sans+Ol+Chiki:wght@400;500;600;700&family=Oxanium:wght@400;500;600;700;800&display=swap');
 
 :root {
   color-scheme: dark;
@@ -56,7 +56,7 @@ html {
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: 'DM Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: 'DM Sans', 'Noto Sans Devanagari', 'Noto Sans Ol Chiki', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   font-size: 13px;
   line-height: 1.5;
   min-height: 100vh;
@@ -157,7 +157,7 @@ a {
 }
 
 .brand-name {
-  font-family: 'Barlow Condensed', sans-serif;
+  font-family: 'Barlow Condensed', 'Noto Sans Devanagari', 'Noto Sans Ol Chiki', sans-serif;
   font-size: 19px;
   font-weight: 800;
   letter-spacing: 0.16em;
@@ -259,7 +259,7 @@ a {
 
 .nav-count {
   margin-left: auto;
-  font-family: 'DM Mono', monospace;
+  font-family: 'DM Mono', 'Noto Sans Devanagari', 'Noto Sans Ol Chiki', monospace;
   font-size: 10px;
   font-weight: 700;
   color: #f2a62e;
@@ -316,7 +316,7 @@ a {
 }
 
 .readiness-score {
-  font-family: 'Barlow Condensed', sans-serif;
+  font-family: 'Barlow Condensed', 'Noto Sans Devanagari', 'Noto Sans Ol Chiki', sans-serif;
   font-size: 28px;
   font-weight: 700;
   line-height: 1;
@@ -326,7 +326,7 @@ a {
 }
 
 .readiness-score small {
-  font-family: 'DM Mono', monospace;
+  font-family: 'DM Mono', 'Noto Sans Devanagari', 'Noto Sans Ol Chiki', monospace;
   font-size: 11px;
   font-weight: 400;
   color: #637177;
@@ -531,7 +531,7 @@ a {
 }
 
 .search-wrap kbd {
-  font-family: 'DM Mono', monospace;
+  font-family: 'DM Mono', 'Noto Sans Devanagari', 'Noto Sans Ol Chiki', monospace;
   font-size: 9px;
   color: #76868b;
   background: #141f23;
@@ -596,6 +596,139 @@ a {
 }
 
 /* ==================================================
+   LANGUAGE SELECTOR
+   ================================================== */
+.lang-selector-wrap {
+  position: relative;
+  display: inline-block;
+  user-select: none;
+}
+
+.lang-selector-btn {
+  height: 34px;
+  padding: 0 10px;
+  border-radius: 7px;
+  background: #111a1d;
+  border: 1px solid var(--border);
+  color: #dbe4e4;
+  font-family: 'DM Mono', 'Noto Sans Devanagari', 'Noto Sans Ol Chiki', monospace;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.16s ease;
+}
+
+.lang-selector-btn:hover,
+.lang-selector-btn:focus-visible {
+  color: #ffffff;
+  background: #172327;
+  border-color: rgba(243, 164, 43, 0.45);
+  box-shadow: 0 0 10px rgba(243, 164, 43, 0.12);
+}
+
+.lang-selector-btn .lang-globe {
+  font-size: 13px;
+  line-height: 1;
+}
+
+.lang-selector-btn .lang-chevron {
+  font-size: 9px;
+  opacity: 0.7;
+  transition: transform 0.18s ease;
+  display: inline-block;
+}
+
+.lang-selector-wrap.open .lang-chevron {
+  transform: rotate(180deg);
+}
+
+.lang-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 170px;
+  background: #0d1417;
+  border: 1px solid rgba(243, 164, 43, 0.28);
+  border-radius: 8px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(94, 216, 196, 0.1);
+  padding: 5px;
+  z-index: 1000;
+  display: none;
+  flex-direction: column;
+  gap: 3px;
+  backdrop-filter: blur(12px);
+  animation: langFadeIn 0.15s ease-out;
+}
+
+@keyframes langFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.lang-selector-wrap.open .lang-dropdown-menu {
+  display: flex;
+}
+
+.lang-option {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 11px;
+  border-radius: 6px;
+  background: transparent;
+  border: 0;
+  color: #c2d6d8;
+  font-family: 'DM Sans', 'Noto Sans Devanagari', 'Noto Sans Ol Chiki', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.14s ease;
+  line-height: 1.35;
+}
+
+.lang-option:hover {
+  background: rgba(243, 164, 43, 0.12);
+  color: #ffffff;
+  transform: translateX(2px);
+}
+
+.lang-option.active {
+  background: rgba(94, 216, 196, 0.14);
+  color: #5ed8c4;
+  font-weight: 600;
+  border-left: 2.5px solid #5ed8c4;
+}
+
+.lang-option .lang-flag {
+  font-size: 14px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+}
+
+.lang-option .lang-name {
+  flex: 1;
+}
+
+.lang-option .lang-check {
+  font-size: 11px;
+  color: #5ed8c4;
+  margin-left: auto;
+}
+
+/* ==================================================
    PAGE CONTAINER & TYPOGRAPHY
    ================================================== */
 .page-content {
@@ -622,7 +755,7 @@ a {
 }
 
 .welcome-row h1 {
-  font-family: 'Barlow Condensed', sans-serif;
+  font-family: 'Barlow Condensed', 'Noto Sans Devanagari', 'Noto Sans Ol Chiki', sans-serif;
   font-size: 32px;
   font-weight: 700;
   line-height: 1.1;
@@ -809,7 +942,7 @@ a {
 
 .stat-card strong {
   display: block;
-  font-family: 'Barlow Condensed', sans-serif;
+  font-family: 'Barlow Condensed', 'Noto Sans Devanagari', 'Noto Sans Ol Chiki', sans-serif;
   font-size: 28px;
   font-weight: 700;
   line-height: 1;
@@ -819,7 +952,7 @@ a {
 }
 
 .stat-card strong > span {
-  font-family: 'DM Mono', monospace;
+  font-family: 'DM Mono', 'Noto Sans Devanagari', 'Noto Sans Ol Chiki', monospace;
   font-size: 13px;
   font-weight: 400;
   color: #647378;
@@ -892,7 +1025,7 @@ a {
 }
 
 .hero-copy h2 {
-  font-family: 'Barlow Condensed', sans-serif;
+  font-family: 'Barlow Condensed', 'Noto Sans Devanagari', 'Noto Sans Ol Chiki', sans-serif;
   font-size: 38px;
   font-weight: 800;
   line-height: 1.05;
@@ -928,7 +1061,7 @@ a {
 }
 
 .hero-meta strong {
-  font-family: 'Barlow Condensed', sans-serif;
+  font-family: 'Barlow Condensed', 'Noto Sans Devanagari', 'Noto Sans Ol Chiki', sans-serif;
   font-size: 26px;
   font-weight: 700;
   color: #f4f5f2;
@@ -1049,7 +1182,7 @@ a {
 }
 
 .section-heading h2 {
-  font-family: 'Barlow Condensed', sans-serif;
+  font-family: 'Barlow Condensed', 'Noto Sans Devanagari', 'Noto Sans Ol Chiki', sans-serif;
   font-size: 24px;
   font-weight: 700;
   letter-spacing: 0.02em;
@@ -1220,7 +1353,7 @@ a {
 }
 
 .module-body h3 {
-  font-family: 'Barlow Condensed', sans-serif;
+  font-family: 'Barlow Condensed', 'Noto Sans Devanagari', 'Noto Sans Ol Chiki', sans-serif;
   font-size: 21px;
   font-weight: 700;
   color: #f4f5f2;
@@ -1292,7 +1425,7 @@ a {
 }
 
 .panel-heading h2 {
-  font-family: 'Barlow Condensed', sans-serif;
+  font-family: 'Barlow Condensed', 'Noto Sans Devanagari', 'Noto Sans Ol Chiki', sans-serif;
   font-size: 22px;
   font-weight: 700;
   color: #f4f5f2;
@@ -1378,7 +1511,7 @@ a {
 }
 
 .action-index {
-  font-family: 'DM Mono', monospace;
+  font-family: 'DM Mono', 'Noto Sans Devanagari', 'Noto Sans Ol Chiki', monospace;
   font-size: 11px;
   font-weight: 700;
   color: #718186;
@@ -1481,7 +1614,7 @@ a {
 }
 
 .section-heading.compact h3 {
-  font-family: 'Barlow Condensed', sans-serif;
+  font-family: 'Barlow Condensed', 'Noto Sans Devanagari', 'Noto Sans Ol Chiki', sans-serif;
   font-size: 18px;
   font-weight: 700;
   color: #f4f5f2;
@@ -1526,7 +1659,7 @@ a {
   inset: 0;
   display: grid;
   place-items: center;
-  font-family: 'Barlow Condensed', sans-serif;
+  font-family: 'Barlow Condensed', 'Noto Sans Devanagari', 'Noto Sans Ol Chiki', sans-serif;
   font-size: 18px;
   font-weight: 700;
   color: #f4f5f2;
@@ -1572,7 +1705,7 @@ a {
 
 .readiness-metrics strong {
   display: block;
-  font-family: 'Barlow Condensed', sans-serif;
+  font-family: 'Barlow Condensed', 'Noto Sans Devanagari', 'Noto Sans Ol Chiki', sans-serif;
   font-size: 20px;
   font-weight: 700;
   color: #f4f5f2;
@@ -1588,7 +1721,7 @@ a {
 }
 
 .credential-header h3 {
-  font-family: 'Barlow Condensed', sans-serif;
+  font-family: 'Barlow Condensed', 'Noto Sans Devanagari', 'Noto Sans Ol Chiki', sans-serif;
   font-size: 18px;
   font-weight: 700;
   color: #f4f5f2;
@@ -1617,7 +1750,7 @@ a {
 }
 
 .credential-seal span {
-  font-family: 'Barlow Condensed', sans-serif;
+  font-family: 'Barlow Condensed', 'Noto Sans Devanagari', 'Noto Sans Ol Chiki', sans-serif;
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.1em;
@@ -1625,7 +1758,7 @@ a {
 
 .credential-body strong {
   display: block;
-  font-family: 'Barlow Condensed', sans-serif;
+  font-family: 'Barlow Condensed', 'Noto Sans Devanagari', 'Noto Sans Ol Chiki', sans-serif;
   font-size: 20px;
   font-weight: 700;
   color: #5ed8c4;
@@ -1727,7 +1860,7 @@ a {
 
 .field-photo-copy strong {
   display: block;
-  font-family: 'Barlow Condensed', sans-serif;
+  font-family: 'Barlow Condensed', 'Noto Sans Devanagari', 'Noto Sans Ol Chiki', sans-serif;
   font-size: 16px;
   font-weight: 700;
   color: #f4f5f2;
@@ -1832,7 +1965,7 @@ tbody tr:hover td {
 
 .worker-cell small {
   display: block;
-  font-family: 'DM Mono', monospace;
+  font-family: 'DM Mono', 'Noto Sans Devanagari', 'Noto Sans Ol Chiki', monospace;
   font-size: 9.5px;
   color: #7d8f94;
 }
@@ -1904,7 +2037,7 @@ tbody tr:hover td {
 }
 
 .empty-state h2 {
-  font-family: 'Barlow Condensed', sans-serif;
+  font-family: 'Barlow Condensed', 'Noto Sans Devanagari', 'Noto Sans Ol Chiki', sans-serif;
   font-size: 22px;
   font-weight: 700;
   color: #f4f5f2;
@@ -1945,7 +2078,7 @@ tbody tr:hover td {
 
 .mini-stat b {
   display: block;
-  font-family: 'Barlow Condensed', sans-serif;
+  font-family: 'Barlow Condensed', 'Noto Sans Devanagari', 'Noto Sans Ol Chiki', sans-serif;
   font-size: 24px;
   font-weight: 700;
   color: #f4f5f2;
@@ -2037,7 +2170,7 @@ tbody tr:hover td {
 }
 
 .certificate-overline {
-  font-family: 'DM Mono', monospace;
+  font-family: 'DM Mono', 'Noto Sans Devanagari', 'Noto Sans Ol Chiki', monospace;
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.22em;
@@ -2047,7 +2180,7 @@ tbody tr:hover td {
 }
 
 .certificate-inner h2 {
-  font-family: 'Barlow Condensed', sans-serif;
+  font-family: 'Barlow Condensed', 'Noto Sans Devanagari', 'Noto Sans Ol Chiki', sans-serif;
   font-size: 32px;
   font-weight: 800;
   color: #f4f5f2;
@@ -2127,7 +2260,7 @@ tbody tr:hover td {
 
 .signature small {
   display: block;
-  font-family: 'DM Mono', monospace;
+  font-family: 'DM Mono', 'Noto Sans Devanagari', 'Noto Sans Ol Chiki', monospace;
   font-size: 7.5px;
   color: #718186;
   text-transform: uppercase;
@@ -2147,7 +2280,7 @@ tbody tr:hover td {
 
 .seal small {
   display: block;
-  font-family: 'DM Mono', monospace;
+  font-family: 'DM Mono', 'Noto Sans Devanagari', 'Noto Sans Ol Chiki', monospace;
   font-size: 7.5px;
   color: #a18c61;
   letter-spacing: 0.1em;
@@ -2177,7 +2310,7 @@ tbody tr:hover td {
 
 .certificate-qr-wrap small {
   display: block;
-  font-family: 'DM Mono', monospace;
+  font-family: 'DM Mono', 'Noto Sans Devanagari', 'Noto Sans Ol Chiki', monospace;
   font-size: 7.5px;
   letter-spacing: 0.08em;
   color: #8c9fa4;
@@ -2189,7 +2322,7 @@ tbody tr:hover td {
   color: #817a68;
   letter-spacing: 0.08em;
   margin-top: 18px;
-  font-family: 'DM Mono', monospace;
+  font-family: 'DM Mono', 'Noto Sans Devanagari', 'Noto Sans Ol Chiki', monospace;
   font-size: 8px;
   text-align: center;
   padding-top: 12px;
@@ -2241,7 +2374,7 @@ tbody tr:hover td {
 }
 
 .profile-panel-head h2 {
-  font-family: 'Barlow Condensed', sans-serif;
+  font-family: 'Barlow Condensed', 'Noto Sans Devanagari', 'Noto Sans Ol Chiki', sans-serif;
   font-size: 24px;
   font-weight: 700;
   color: #f4f5f2;
@@ -2296,7 +2429,7 @@ tbody tr:hover td {
 }
 
 .profile-identity h3 {
-  font-family: 'Barlow Condensed', sans-serif;
+  font-family: 'Barlow Condensed', 'Noto Sans Devanagari', 'Noto Sans Ol Chiki', sans-serif;
   font-size: 20px;
   font-weight: 700;
   color: #f4f5f2;
@@ -2332,7 +2465,7 @@ tbody tr:hover td {
 }
 
 .profile-stat strong {
-  font-family: 'Barlow Condensed', sans-serif;
+  font-family: 'Barlow Condensed', 'Noto Sans Devanagari', 'Noto Sans Ol Chiki', sans-serif;
   font-size: 20px;
   font-weight: 700;
   color: #f4f5f2;
@@ -2359,7 +2492,7 @@ tbody tr:hover td {
 }
 
 .modal-head h2 {
-  font-family: 'Barlow Condensed', sans-serif;
+  font-family: 'Barlow Condensed', 'Noto Sans Devanagari', 'Noto Sans Ol Chiki', sans-serif;
   font-size: 22px;
   font-weight: 700;
   color: #f4f5f2;

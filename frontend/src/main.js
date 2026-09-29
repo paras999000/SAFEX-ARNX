@@ -1,6 +1,13 @@
 // SAFEX AR Safety Command Center - Redesigned Industrial Safety Dashboard
-// Designed to match reference UX & visual system
+// Multilingual Edition: English (en - default), हिन्दी (hi), ᱥᱟᱱᱛᱟᱲᱤ (sat)
 // Connected to Node.js / Express / PostgreSQL REST API & Unity Android AR App
+
+import {
+  SUPPORTED_LANGUAGES,
+  getSavedLanguage,
+  setGlobalLanguage,
+  t
+} from './i18n/translations.js';
 
 // API Base URL Resolution (Query param ?api=... > localStorage > default production backend)
 const urlParams = new URLSearchParams(window.location.search);
@@ -10,90 +17,118 @@ if (urlParams.get('api')) {
 const DEFAULT_API_URL = 'https://safex-arnx.onrender.com';
 let API_BASE = window.SAFEX_API_URL || localStorage.getItem('SAFEX_API_URL') || DEFAULT_API_URL;
 
+// Active Language State (en, hi, sat)
+let currentLanguage = getSavedLanguage();
+setGlobalLanguage(currentLanguage);
+
+function setLanguage(lang) {
+  if (lang !== 'en' && lang !== 'hi' && lang !== 'sat') return;
+  currentLanguage = lang;
+  setGlobalLanguage(lang);
+  render();
+}
+window.setLanguage = setLanguage;
+
 // Baseline AR Safety Modules
-const modules = [
-  {
-    id: 'M-01',
-    key: 'FIRE',
-    name: 'Fire & Explosion',
-    kicker: 'Emergency response',
-    summary: 'Detect ignition sources, raise the alarm, isolate power/ventilation, and lead safe evacuation.',
-    image: '/img/safex-fire.png',
-    file: 'safex-fire.png',
-    icon: 'flame',
-    color: 'amber',
-    tag: 'HIGH PRIORITY',
-    lessons: '4 actions'
-  },
-  {
-    id: 'M-02',
-    key: 'GAS',
-    name: 'Gas & Confined Space',
-    kicker: 'Atmospheric hazard',
-    summary: 'Scan toxic & flammable gas levels (CH4, CO, H2S), follow PPE protocols, and coordinate evacuation.',
-    image: '/img/safex-gas.png',
-    file: 'safex-gas.png',
-    icon: 'wind',
-    color: 'teal',
-    tag: 'ATMOSPHERIC HAZARD',
-    lessons: '5 actions'
-  }
-];
+function getModules() {
+  return [
+    {
+      id: 'M-01',
+      key: 'FIRE',
+      name: t('modules.fire_name'),
+      kicker: t('modules.fire_kicker'),
+      summary: t('modules.fire_summary'),
+      image: '/img/safex-fire.png',
+      file: 'safex-fire.png',
+      icon: 'flame',
+      color: 'amber',
+      tag: t('modules.fire_tag'),
+      lessons: t('modules.fire_lessons')
+    },
+    {
+      id: 'M-02',
+      key: 'GAS',
+      name: t('modules.gas_name'),
+      kicker: t('modules.gas_kicker'),
+      summary: t('modules.gas_summary'),
+      image: '/img/safex-gas.png',
+      file: 'safex-gas.png',
+      icon: 'wind',
+      color: 'teal',
+      tag: t('modules.gas_tag'),
+      lessons: t('modules.gas_lessons')
+    }
+  ];
+}
 
 // Interactive Scenario Steps for Live Simulation Panel
-const scenarioData = {
-  FIRE: {
-    title: 'Fire & Explosion Response',
-    code: 'SCENARIO · 01',
-    accent: 'amber',
-    steps: [
-      { label: 'Detect fire & ignition source', detail: 'Identify thermal runaway in machinery zone 03', tone: 'amber', icon: 'flame' },
-      { label: 'Raise emergency alarm', detail: 'Alert control room & underground shift personnel', tone: 'red', icon: 'alert' },
-      { label: 'Isolate power & ventilation', detail: 'Cut main circuit breaker & engage smoke barrier', tone: 'yellow', icon: 'shield' },
-      { label: 'Deploy extinguisher & evacuate', detail: 'Discharge CO2 unit and proceed along illuminated Escape Route B', tone: 'green', icon: 'check' }
-    ]
-  },
-  GAS: {
-    title: 'Gas & Confined Space Response',
-    code: 'SCENARIO · 02',
-    accent: 'teal',
-    steps: [
-      { label: 'Scan atmospheric toxicity', detail: 'Continuous optical sensor readout for CH4 & H2S levels', tone: 'teal', icon: 'wind' },
-      { label: 'Stop hot work immediately', detail: 'Halt welding/grinding and notify safety supervisor', tone: 'red', icon: 'alert' },
-      { label: 'Don positive-pressure SCBA', detail: 'Verify mask seal and open air valve before moving', tone: 'blue', icon: 'shield' },
-      { label: 'Confirm buddy protocol', detail: 'Partner visual verification & lifeline tether check', tone: 'green', icon: 'users' },
-      { label: 'Evacuate via fresh-air intake tunnel', detail: 'Follow windsock orientation to fresh air base station', tone: 'teal', icon: 'check' }
-    ]
-  }
-};
+function getScenarioData() {
+  return {
+    FIRE: {
+      title: t('scenario.fire_title'),
+      code: t('scenario.fire_code'),
+      accent: 'amber',
+      steps: [
+        { label: t('scenario.fire_step_0_label'), detail: t('scenario.fire_step_0_detail'), tone: 'amber', icon: 'flame' },
+        { label: t('scenario.fire_step_1_label'), detail: t('scenario.fire_step_1_detail'), tone: 'red', icon: 'alert' },
+        { label: t('scenario.fire_step_2_label'), detail: t('scenario.fire_step_2_detail'), tone: 'yellow', icon: 'shield' },
+        { label: t('scenario.fire_step_3_label'), detail: t('scenario.fire_step_3_detail'), tone: 'green', icon: 'check' }
+      ]
+    },
+    GAS: {
+      title: t('scenario.gas_title'),
+      code: t('scenario.gas_code'),
+      accent: 'teal',
+      steps: [
+        { label: t('scenario.gas_step_0_label'), detail: t('scenario.gas_step_0_detail'), tone: 'teal', icon: 'wind' },
+        { label: t('scenario.gas_step_1_label'), detail: t('scenario.gas_step_1_detail'), tone: 'red', icon: 'alert' },
+        { label: t('scenario.gas_step_2_label'), detail: t('scenario.gas_step_2_detail'), tone: 'blue', icon: 'shield' },
+        { label: t('scenario.gas_step_3_label'), detail: t('scenario.gas_step_3_detail'), tone: 'green', icon: 'users' },
+        { label: t('scenario.gas_step_4_label'), detail: t('scenario.gas_step_4_detail'), tone: 'teal', icon: 'check' }
+      ]
+    }
+  };
+}
 
 // Navigation Schema
 const navSections = [
   {
-    label: 'WORKSPACE',
+    key: 'workspace',
+    labelKey: 'nav.workspace',
     items: [
-      { label: 'Dashboard', icon: 'grid', badgeKey: null },
-      { label: 'Workers', icon: 'users', badgeKey: 'trainees' },
-      { label: 'Training Sessions', icon: 'activity', badgeKey: 'sessions' },
-      { label: 'Modules', icon: 'layers', count: '02' }
+      { id: 'Dashboard', key: 'dashboard', labelKey: 'nav.dashboard', icon: 'grid', badgeKey: null },
+      { id: 'Workers', key: 'workers', labelKey: 'nav.workers', icon: 'users', badgeKey: 'trainees' },
+      { id: 'Training Sessions', key: 'sessions', labelKey: 'nav.sessions', icon: 'activity', badgeKey: 'sessions' },
+      { id: 'Modules', key: 'modules', labelKey: 'nav.modules', icon: 'layers', count: '02' }
     ]
   },
   {
-    label: 'COMPLIANCE',
+    key: 'compliance',
+    labelKey: 'nav.compliance',
     items: [
-      { label: 'Assessments', icon: 'check', badgeKey: 'assessments' },
-      { label: 'Certificates', icon: 'award', badgeKey: 'certificates' },
-      { label: 'Verification', icon: 'scan', badgeKey: null },
-      { label: 'Reports', icon: 'chart', badgeKey: null }
+      { id: 'Assessments', key: 'assessments', labelKey: 'nav.assessments', icon: 'check', badgeKey: 'assessments' },
+      { id: 'Certificates', key: 'certificates', labelKey: 'nav.certificates', icon: 'award', badgeKey: 'certificates' },
+      { id: 'Verification', key: 'verification', labelKey: 'nav.verification', icon: 'scan', badgeKey: null },
+      { id: 'Reports', key: 'reports', labelKey: 'nav.reports', icon: 'chart', badgeKey: null }
     ]
   },
   {
-    label: 'SYSTEM',
+    key: 'system',
+    labelKey: 'nav.system',
     items: [
-      { label: 'Settings', icon: 'settings', badgeKey: null }
+      { id: 'Settings', key: 'settings', labelKey: 'nav.settings', icon: 'settings', badgeKey: null }
     ]
   }
 ];
+
+function getNavPageLabel(pageId) {
+  for (const s of navSections) {
+    for (const it of s.items) {
+      if (it.id === pageId) return t(it.labelKey);
+    }
+  }
+  return pageId;
+}
 
 // Application State
 let currentPage = 'Dashboard';
@@ -166,22 +201,23 @@ function esc(s = '') {
 
 function formatLanguage(code = '') {
   const c = String(code).toLowerCase();
-  if (c === 'sat' || c === 'santali') return 'Santali';
-  if (c === 'hi' || c === 'hindi') return 'Hindi';
-  return 'English';
+  if (c === 'sat' || c === 'santali') return t('lang.sat');
+  if (c === 'hi' || c === 'hindi') return t('lang.hi');
+  return t('lang.en');
 }
 
 function formatRelativeTime(dateStr) {
-  if (!dateStr) return 'Recently';
+  if (!dateStr) return t('time.recently');
   try {
     const d = new Date(dateStr);
     const diff = Math.floor((Date.now() - d.getTime()) / 1000);
-    if (diff < 60) return 'Just now';
-    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    if (diff < 60) return t('time.just_now');
+    if (diff < 3600) return t('time.min_ago', { n: Math.floor(diff / 60) });
+    if (diff < 86400) return t('time.hours_ago', { n: Math.floor(diff / 3600) });
+    const locale = currentLanguage === 'hi' ? 'hi-IN' : (currentLanguage === 'sat' ? 'sat' : 'en-US');
+    return d.toLocaleDateString(locale, { month: 'short', day: 'numeric', year: 'numeric' });
   } catch {
-    return 'Recently';
+    return t('time.recently');
   }
 }
 
@@ -192,10 +228,20 @@ function matchesSearch(text) {
 
 function badge(s) {
   const str = String(s || 'Active');
-  const cls = /complete|pass|verified|active|on track/i.test(str) ? 'good' :
-              /incident|attention|fail|overdue|risk/i.test(str) ? 'warn' :
-              /progress|pending|ready|started/i.test(str) ? 'info' : 'neutral';
-  return `<span class="status-pill ${cls}"><i></i>${esc(str)}</span>`;
+  const cls = /complete|pass|verified|active|on track|सत्यापित|उत्तीर्ण|ᱥᱟᱹᱛ|ᱯᱟᱥ|ᱵᱷᱮᱨᱤᱯᱷᱟᱭ/i.test(str) ? 'good' :
+              /incident|attention|fail|overdue|risk|अनुत्तीर्ण|ᱯᱷᱮᱞ/i.test(str) ? 'warn' :
+              /progress|pending|ready|started|लंबित|ᱵᱟᱹᱠᱤ/i.test(str) ? 'info' : 'neutral';
+
+  let display = str;
+  const upper = str.toUpperCase();
+  if (upper === 'ACTIVE') display = t('badge.active');
+  else if (upper === 'IN_PROGRESS' || upper === 'IN PROGRESS') display = t('badge.in_progress');
+  else if (upper === 'PASSED') display = t('badge.passed');
+  else if (upper === 'FAILED') display = t('badge.failed');
+  else if (upper === 'VERIFIED') display = t('badge.verified');
+  else if (upper === 'NOT FOUND') display = t('badge.not_found');
+
+  return `<span class="status-pill ${cls}"><i></i>${esc(display)}</span>`;
 }
 
 // REST API Helpers
@@ -319,7 +365,7 @@ async function startQrScanner() {
   if (errorView) errorView.style.display = 'none';
   if (reticle) reticle.style.display = 'flex';
   if (statusEl) {
-    statusEl.textContent = 'Requesting camera permission...';
+    statusEl.textContent = t('qr.status_requesting');
     statusEl.style.color = '#5ed8c4';
   }
 
@@ -344,8 +390,8 @@ async function startQrScanner() {
         if (errorView) {
           errorView.style.display = 'flex';
           if (reticle) reticle.style.display = 'none';
-          if (errorTitle) errorTitle.textContent = 'No Camera Available';
-          if (errorMsg) errorMsg.textContent = 'No camera available. Use manual certificate ID verification.';
+          if (errorTitle) errorTitle.textContent = t('qr.err_no_cam_title');
+          if (errorMsg) errorMsg.textContent = t('qr.err_no_cam_msg');
         }
         return;
       }
@@ -359,16 +405,16 @@ async function startQrScanner() {
 
       if (!certId) {
         if (statusEl) {
-          statusEl.textContent = 'Invalid QR: No SAFEX certificate ID';
+          statusEl.textContent = t('qr.status_invalid');
           statusEl.style.color = '#e4544a';
         }
-        toast('Invalid QR: Could not extract SAFEX certificate ID', false);
+        toast(t('toast.qr_invalid'), false);
         return;
       }
 
-      toast(`QR detected: ${certId}`);
+      toast(t('toast.qr_detected', { id: certId }));
       if (statusEl) {
-        statusEl.textContent = `Detected: ${certId}`;
+        statusEl.textContent = t('qr.status_detected', { id: certId });
         statusEl.style.color = '#5ed8c4';
       }
 
@@ -394,7 +440,7 @@ async function startQrScanner() {
     );
 
     if (statusEl) {
-      statusEl.textContent = 'Point camera at SAFEX QR';
+      statusEl.textContent = t('qr.status_point');
       statusEl.style.color = '#829297';
     }
   } catch (err) {
@@ -407,11 +453,11 @@ async function startQrScanner() {
       const msg = String(err?.message || err);
       const isDenied = msg.includes('Permission') || msg.includes('denied') || msg.includes('NotAllowedError');
       if (isDenied) {
-        if (errorTitle) errorTitle.textContent = 'Camera Permission Required';
-        if (errorMsg) errorMsg.textContent = 'Camera permission is required to scan QR codes.';
+        if (errorTitle) errorTitle.textContent = t('qr.err_access_title');
+        if (errorMsg) errorMsg.textContent = t('qr.err_access_msg');
       } else {
-        if (errorTitle) errorTitle.textContent = 'No Camera Available';
-        if (errorMsg) errorMsg.textContent = 'No camera available. Use manual certificate ID verification.';
+        if (errorTitle) errorTitle.textContent = t('qr.err_no_cam_title');
+        if (errorMsg) errorMsg.textContent = t('qr.err_no_cam_msg');
       }
     }
   }
@@ -440,14 +486,14 @@ function openQrScannerModal() {
       <div class="modal qr-scanner-modal" onclick="event.stopPropagation()">
         <div class="modal-head">
           <div>
-            <div class="eyebrow" style="color:#5ed8c4;margin-bottom:4px;">CAMERA VERIFICATION · REAL-TIME OPTICAL SCAN</div>
-            <h2>SCAN QR CODE</h2>
+            <div class="eyebrow" style="color:#5ed8c4;margin-bottom:4px;">${esc(t('qr.eyebrow'))}</div>
+            <h2>${esc(t('qr.heading'))}</h2>
           </div>
-          <button class="icon-button" data-action="close-qr-scanner" aria-label="Close scanner" style="width:32px;height:32px;">
+          <button class="icon-button" data-action="close-qr-scanner" aria-label="${esc(t('action.close'))}" style="width:32px;height:32px;">
             ${icon('close', 16)}
           </button>
         </div>
-        <p class="modal-intro" style="margin-bottom:14px;">Point camera at SAFEX QR to verify certificate authenticity in real time.</p>
+        <p class="modal-intro" style="margin-bottom:14px;">${esc(t('qr.intro'))}</p>
 
         <div class="qr-camera-viewport">
           <div id="safex-qr-reader"></div>
@@ -461,7 +507,7 @@ function openQrScannerModal() {
               <div class="qr-laser-line"></div>
             </div>
             <div id="qr-camera-status" style="margin-top:14px;font-family:'DM Mono',monospace;font-size:11px;color:#829297;background:rgba(5,8,10,0.85);padding:4px 14px;border-radius:4px;border:1px solid rgba(255,255,255,0.08);">
-              Point camera at SAFEX QR
+              ${esc(t('qr.status_point'))}
             </div>
           </div>
 
@@ -469,18 +515,18 @@ function openQrScannerModal() {
             <div style="width:48px;height:48px;border-radius:50%;background:rgba(228,84,74,0.12);color:#e4544a;display:flex;align-items:center;justify-content:center;margin-bottom:12px;">
               ${icon('alert', 24)}
             </div>
-            <b id="qr-error-title" style="color:#f4f5f2;font-size:14px;margin-bottom:6px;">Camera Access Required</b>
-            <p id="qr-error-msg" style="color:#7d8e93;font-size:11.5px;max-width:320px;line-height:1.5;">Camera permission is required to scan QR codes.</p>
+            <b id="qr-error-title" style="color:#f4f5f2;font-size:14px;margin-bottom:6px;">${esc(t('qr.err_access_title'))}</b>
+            <p id="qr-error-msg" style="color:#7d8e93;font-size:11.5px;max-width:320px;line-height:1.5;">${esc(t('qr.err_access_msg'))}</p>
             <button type="button" class="secondary-button" style="margin-top:16px;height:34px;padding:0 14px;" data-action="retry-camera">
-              ${icon('refresh', 13)} Retry Camera
+              ${icon('refresh', 13)} ${esc(t('action.retry_camera'))}
             </button>
           </div>
         </div>
 
         <div style="display:flex;align-items:center;justify-content:space-between;margin-top:16px;">
-          <span style="font-size:11px;color:#7d8e93;">Live browser camera stream</span>
+          <span style="font-size:11px;color:#7d8e93;">${esc(t('qr.stream_label'))}</span>
           <button type="button" class="secondary-button" data-action="close-qr-scanner" style="height:36px;padding:0 18px;">
-            Close Scanner
+            ${esc(t('action.close_scanner'))}
           </button>
         </div>
       </div>
@@ -502,7 +548,7 @@ async function performCertificateVerification(certId) {
   if (!certId) return;
   const tid = String(certId).trim();
   verifySearchQuery = tid;
-  toast('Verifying certificate in PostgreSQL records...');
+  toast(t('toast.verifying_pg'));
 
   const cert = await apiGet(`/api/certificates/${encodeURIComponent(tid)}`);
   if (cert) {
@@ -511,14 +557,14 @@ async function performCertificateVerification(certId) {
       verified: true,
       ...cert
     };
-    toast('✓ Certificate verified successfully!');
+    toast(t('toast.cert_verified'));
   } else {
     verifySearchResult = {
       found: false,
       verified: false,
       certificateId: tid
     };
-    toast('✕ Certificate not found in PostgreSQL records', false);
+    toast(t('toast.cert_not_found'), false);
   }
   render();
 
@@ -597,24 +643,24 @@ function sidebar() {
           ${icon('shield', 18)}
         </div>
         <div>
-          <div class="brand-name">SAFEX</div>
-          <div class="brand-sub">AR-BASED INDUSTRIAL SAFETY</div>
+          <div class="brand-name">${esc(t('brand.name'))}</div>
+          <div class="brand-sub">${esc(t('brand.subtitle'))}</div>
         </div>
-        <button class="sidebar-close" data-action="close-nav" aria-label="Close menu">${icon('close', 18)}</button>
+        <button class="sidebar-close" data-action="close-nav" aria-label="${esc(t('action.close'))}">${icon('close', 18)}</button>
       </div>
     </div>
 
-    <div class="sidebar-eyebrow eyebrow">TRAIN · ASSESS · CERTIFY</div>
+    <div class="sidebar-eyebrow eyebrow">${esc(t('brand.eyebrow'))}</div>
 
     <nav class="sidebar-nav" aria-label="Primary navigation">
       ${navSections.map(section => `
-        <div class="nav-label ${section.label === 'SYSTEM' ? 'nav-label-spaced' : ''}">${section.label}</div>
+        <div class="nav-label ${section.key === 'system' ? 'nav-label-spaced' : ''}">${esc(t(section.labelKey))}</div>
         ${section.items.map(item => {
           const badgeCount = item.count || getBadgeCount(item.badgeKey);
           return `
-            <button class="nav-item ${currentPage === item.label ? 'active' : ''}" data-page="${item.label}">
+            <button class="nav-item ${currentPage === item.id ? 'active' : ''}" data-page="${item.id}">
               ${icon(item.icon, 16)}
-              <span>${item.label}</span>
+              <span>${esc(t(item.labelKey))}</span>
               ${badgeCount ? `<span class="nav-count">${badgeCount}</span>` : ''}
             </button>
           `;
@@ -625,9 +671,9 @@ function sidebar() {
     <div class="sidebar-bottom">
       <div class="readiness-mini">
         <div class="readiness-top">
-          <span>SHIFT READINESS</span>
+          <span>${esc(t('sidebar.readiness'))}</span>
           <span class="status-dot"></span>
-          <b>LIVE</b>
+          <b>${esc(t('sidebar.live'))}</b>
         </div>
         <div class="readiness-score">
           ${readinessScore} <small>/ 100</small>
@@ -635,14 +681,14 @@ function sidebar() {
         <div class="mini-bars" aria-hidden="true">
           <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
         </div>
-        <p>${apiOverview.totalTrainees} registered trainees in PostgreSQL.</p>
+        <p>${esc(t('sidebar.trainees_count', { n: apiOverview.totalTrainees }))}</p>
       </div>
 
-      <div class="sidebar-user" data-action="open-profile" title="View Safety Admin Profile">
+      <div class="sidebar-user" data-action="open-profile" title="${esc(t('action.view_profile'))}">
         <div class="avatar avatar-teal">SA</div>
         <div>
-          <strong>Safety Administrator</strong>
-          <span>Surface Command Dispatch</span>
+          <strong>${esc(t('sidebar.user_role'))}</strong>
+          <span>${esc(t('sidebar.user_dept'))}</span>
         </div>
         <div class="user-more">›</div>
       </div>
@@ -651,36 +697,56 @@ function sidebar() {
 }
 
 function topbar() {
+  const currentLangObj = SUPPORTED_LANGUAGES.find(l => l.code === currentLanguage) || SUPPORTED_LANGUAGES[0];
+
   document.querySelector('#topbar').innerHTML = `
     <button class="mobile-menu" data-action="open-nav" aria-label="Open navigation">${icon('menu', 18)}</button>
     <div class="breadcrumb">
-      <span>SAFEX COMMAND</span>
+      <span>${esc(t('breadcrumb.root'))}</span>
       ${icon('arrow', 11)}
-      <strong>${esc(currentPage)}</strong>
+      <strong>${esc(getNavPageLabel(currentPage))}</strong>
     </div>
 
     <div class="topbar-actions">
       <div class="live-location" title="Synchronized with PostgreSQL on Render">
         <span class="live-pulse"></span>
-        <span>POSTGRESQL SYNCED</span>
+        <span>${esc(t('status.postgres_synced'))}</span>
       </div>
 
       <div class="search-wrap">
         ${icon('search', 14)}
-        <input id="global-search" type="search" placeholder="Search employees, sessions…" aria-label="Search dashboard" value="${esc(searchTerm)}">
+        <input id="global-search" type="search" placeholder="${esc(t('topbar.search_placeholder'))}" aria-label="Search dashboard" value="${esc(searchTerm)}">
         <kbd>⌘ K</kbd>
       </div>
 
-      <button class="icon-button ${isSyncing ? 'spinning' : ''}" data-action="refresh" title="Sync live backend data" aria-label="Refresh">
+      <!-- LANGUAGE SELECTOR -->
+      <div class="lang-selector-wrap" id="lang-selector-wrap">
+        <button type="button" class="lang-selector-btn" id="lang-menu-trigger" data-action="toggle-lang-menu" aria-haspopup="true" aria-expanded="false" title="Language: ${currentLangObj.label}">
+          <span class="lang-globe">🌐</span>
+          <span class="lang-code">${currentLangObj.code.toUpperCase()}</span>
+          <span class="lang-chevron">▾</span>
+        </button>
+        <div class="lang-dropdown-menu" id="lang-dropdown-menu" role="menu">
+          ${SUPPORTED_LANGUAGES.map(l => `
+            <button type="button" class="lang-option ${currentLanguage === l.code ? 'active' : ''}" data-change-lang="${l.code}" role="menuitem">
+              <span class="lang-flag">${l.flag}</span>
+              <span class="lang-name">${l.code === 'sat' ? 'Santali' : esc(l.label)}</span>
+              ${currentLanguage === l.code ? '<span class="lang-check">✓</span>' : ''}
+            </button>
+          `).join('')}
+        </div>
+      </div>
+
+      <button class="icon-button ${isSyncing ? 'spinning' : ''}" data-action="refresh" title="${esc(t('action.refresh'))}" aria-label="${esc(t('action.refresh'))}">
         ${icon('refresh', 16)}
       </button>
 
-      <button class="icon-button notification-button" data-action="notifications" aria-label="Notifications" title="Real-time alert telemetry">
+      <button class="icon-button notification-button" data-action="notifications" aria-label="Notifications" title="${esc(t('common.all_systems_online'))}">
         ${icon('bell', 16)}
         <i class="notification-dot"></i>
       </button>
 
-      <div class="topbar-avatar" data-action="open-profile" title="Admin profile">
+      <div class="topbar-avatar" data-action="open-profile" title="${esc(t('sidebar.user_role'))}">
         SA
       </div>
     </div>
@@ -707,6 +773,8 @@ function renderDashboardHome() {
   const certsCount = apiOverview.certificatesIssued || apiCertificates.length;
   const readiness = apiOverview.completionRate || (totalEmployees > 0 ? 86 : 0);
 
+  const scenarioData = getScenarioData();
+  const currentModules = getModules();
   const activeScenario = scenarioData[selectedModuleKey] || scenarioData.FIRE;
   const totalSteps = activeScenario.steps.length;
   const completedStepsCount = activeScenarioProgress.length;
@@ -714,13 +782,13 @@ function renderDashboardHome() {
   return `
     <div class="welcome-row">
       <div>
-        <div class="eyebrow">SAFEX AR COMMAND CENTER <span>/</span> MINE SAFETY SIMULATOR</div>
-        <h1>INDUSTRIAL SAFETY <em>COMMAND CENTER</em></h1>
-        <p>Real-time AR training telemetry & workforce compliance verification synchronized with PostgreSQL.</p>
+        <div class="eyebrow">${t('dashboard.eyebrow')}</div>
+        <h1>${esc(t('dashboard.title_main'))} <em>${esc(t('dashboard.title_em'))}</em></h1>
+        <p>${esc(t('dashboard.subtitle'))}</p>
       </div>
       <div class="welcome-actions">
-        <button class="secondary-button" data-action="schedule">${icon('plus', 14)} Schedule session</button>
-        <button class="primary-button" data-action="add-worker">${icon('users', 14)} Add trainee</button>
+        <button class="secondary-button" data-action="schedule">${icon('plus', 14)} ${esc(t('action.schedule'))}</button>
+        <button class="primary-button" data-action="add-worker">${icon('users', 14)} ${esc(t('action.add_trainee'))}</button>
       </div>
     </div>
 
@@ -729,9 +797,9 @@ function renderDashboardHome() {
       <div class="stat-card stat-card-highlight">
         <div class="stat-icon amber-icon">${icon('shield', 19)}</div>
         <div>
-          <span>SAFETY READINESS</span>
+          <span>${esc(t('dashboard.stat_readiness'))}</span>
           <strong>${readiness}<span>/100</span></strong>
-          <small class="positive">${icon('arrow', 11)} +12 this month</small>
+          <small class="positive">${icon('arrow', 11)} ${esc(t('dashboard.stat_readiness_delta'))}</small>
         </div>
         <div class="sparkline" aria-hidden="true">
           <span style="height:40%"></span>
@@ -744,9 +812,9 @@ function renderDashboardHome() {
       <div class="stat-card">
         <div class="stat-icon teal-icon">${icon('users', 19)}</div>
         <div>
-          <span>TOTAL EMPLOYEES</span>
+          <span>${esc(t('dashboard.stat_employees'))}</span>
           <strong>${totalEmployees}</strong>
-          <small>Registered trainees</small>
+          <small>${esc(t('dashboard.stat_employees_sub'))}</small>
         </div>
         <div class="sparkline" aria-hidden="true">
           <span style="height:50%"></span>
@@ -759,9 +827,9 @@ function renderDashboardHome() {
       <div class="stat-card">
         <div class="stat-icon blue-icon">${icon('activity', 19)}</div>
         <div>
-          <span>TRAINING SESSIONS</span>
+          <span>${esc(t('dashboard.stat_sessions'))}</span>
           <strong>${sessionsCount}</strong>
-          <small>${apiOverview.completedSessions || 0} completed</small>
+          <small>${esc(t('dashboard.stat_sessions_sub', { n: apiOverview.completedSessions || 0 }))}</small>
         </div>
         <div class="sparkline" aria-hidden="true">
           <span style="height:30%"></span>
@@ -774,9 +842,9 @@ function renderDashboardHome() {
       <div class="stat-card">
         <div class="stat-icon violet-icon">${icon('award', 19)}</div>
         <div>
-          <span>CERTIFICATES ISSUED</span>
+          <span>${esc(t('dashboard.stat_certs'))}</span>
           <strong>${certsCount}</strong>
-          <small class="positive">DGMS & OSHA verified</small>
+          <small class="positive">${esc(t('dashboard.stat_certs_sub'))}</small>
         </div>
         <div class="sparkline" aria-hidden="true">
           <span style="height:40%"></span>
@@ -790,21 +858,21 @@ function renderDashboardHome() {
     <!-- Hero Card with Telemetry Visual -->
     <section class="hero-card">
       <div class="hero-copy">
-        <div class="hero-kicker">${icon('shield', 13)} THE SAFEX STANDARD</div>
-        <h2>Small steps.<br/><span>Big safety.</span><br/>Every shift.</h2>
-        <p>Practice the moments that matter in a safe, immersive AR environment built for real-world mining and hazardous industrial spaces.</p>
+        <div class="hero-kicker">${icon('shield', 13)} ${esc(t('dashboard.hero_kicker'))}</div>
+        <h2>${esc(t('dashboard.hero_title_1'))}<br/><span>${esc(t('dashboard.hero_title_2'))}</span><br/>${esc(t('dashboard.hero_title_3'))}</h2>
+        <p>${esc(t('dashboard.hero_desc'))}</p>
         <div class="hero-meta">
           <div>
             <strong>02</strong>
-            <span>interactive<br/>scenarios</span>
+            <span>${t('dashboard.hero_meta_scenarios')}</span>
           </div>
           <div>
             <strong>03</strong>
-            <span>regional<br/>languages</span>
+            <span>${t('dashboard.hero_meta_languages')}</span>
           </div>
           <div>
             <strong>100%</strong>
-            <span>audit<br/>compliance</span>
+            <span>${t('dashboard.hero_meta_compliance')}</span>
           </div>
         </div>
       </div>
@@ -817,11 +885,11 @@ function renderDashboardHome() {
         </div>
         <div class="hero-callout hero-callout-one">
           <span class="callout-dot"></span>
-          <span>AR Telemetry <strong>Zone 04 Tunnel</strong></span>
+          <span>${t('dashboard.callout_tunnel')}</span>
         </div>
         <div class="hero-callout hero-callout-two">
           <span class="callout-dot" style="background:#5ed8c4;box-shadow:0 0 8px #5ed8c4;"></span>
-          <span>Atmospheric Scan <strong>Safe to Enter</strong></span>
+          <span>${t('dashboard.callout_gas')}</span>
         </div>
       </div>
     </section>
@@ -830,15 +898,15 @@ function renderDashboardHome() {
     <section class="section-block">
       <div class="section-heading">
         <div>
-          <div class="eyebrow">AR CURRICULUM</div>
-          <h2>Interactive Training Modules</h2>
-          <p>Click a module to load its emergency response protocol in the action panel below.</p>
+          <div class="eyebrow">${esc(t('dashboard.curriculum_eyebrow'))}</div>
+          <h2>${esc(t('dashboard.curriculum_title'))}</h2>
+          <p>${esc(t('dashboard.curriculum_desc'))}</p>
         </div>
-        <button class="text-button" data-page="Modules">View all modules ${icon('arrow', 13)}</button>
+        <button class="text-button" data-page="Modules">${esc(t('dashboard.curriculum_view_all'))} ${icon('arrow', 13)}</button>
       </div>
 
       <div class="module-grid">
-        ${modules.map(m => {
+        ${currentModules.map(m => {
           const isSelected = selectedModuleKey === m.key;
           const stat = apiModuleStats.find(s => s.key === m.key);
           const trainees = stat ? stat.trainees : (m.key === 'FIRE' ? apiOverview.fireSessions : apiOverview.gasSessions);
@@ -849,18 +917,18 @@ function renderDashboardHome() {
               <div class="module-image">
                 <img class="module-photo" src="${m.image}" onerror="if(!this.dataset.t){this.dataset.t='1';this.src='/public/img/${m.file}';}else if(this.dataset.t==='1'){this.dataset.t='2';this.src='img/${m.file}';}" alt="${esc(m.name)}" loading="eager" />
                 <div class="module-image-shade"></div>
-                <div class="module-tag">${icon(m.icon, 12)} ${m.tag}</div>
+                <div class="module-tag">${icon(m.icon, 12)} ${esc(m.tag)}</div>
                 <div class="module-arrow">${icon('arrow', 14)}</div>
               </div>
               <div class="module-body">
                 <div class="module-title-row">
-                  <span class="module-kicker">${m.kicker}</span>
-                  <span class="module-kicker" style="color:#5ed8c4;">${m.lessons}</span>
+                  <span class="module-kicker">${esc(m.kicker)}</span>
+                  <span class="module-kicker" style="color:#5ed8c4;">${esc(m.lessons)}</span>
                 </div>
                 <h3>${esc(m.name)}</h3>
                 <p>${esc(m.summary)}</p>
                 <div class="module-footer">
-                  <span>${icon('users', 13)} ${trainees} trainees</span>
+                  <span>${icon('users', 13)} ${esc(t('modules.trainees_stat', { n: trainees }))}</span>
                   <div class="module-progress">
                     <span style="font-family:'DM Mono',monospace;font-size:10px;">${progress}%</span>
                     <div class="progress-track"><i style="width:${progress}%"></i></div>
@@ -879,7 +947,7 @@ function renderDashboardHome() {
       <div class="action-panel">
         <div class="panel-heading">
           <div>
-            <div class="eyebrow"><span class="scenario-dot ${selectedModuleKey === 'GAS' ? 'gas' : ''}"></span> ${activeScenario.code}</div>
+            <div class="eyebrow"><span class="scenario-dot ${selectedModuleKey === 'GAS' ? 'gas' : ''}"></span> ${esc(activeScenario.code)}</div>
             <h2>${esc(activeScenario.title)}</h2>
             <p>Step-by-step action sequence verified by SAFEX AR Engine.</p>
           </div>
@@ -889,8 +957,8 @@ function renderDashboardHome() {
         </div>
 
         <div class="action-progress">
-          <strong>Step ${completedStepsCount} of ${totalSteps} completed</strong>
-          <span style="font-family:'DM Mono',monospace;font-size:10.5px;color:#5ed8c4;">${Math.round((completedStepsCount / totalSteps) * 100)}% Verified</span>
+          <strong>${esc(t('dashboard.step_completed', { c: completedStepsCount, t: totalSteps }))}</strong>
+          <span style="font-family:'DM Mono',monospace;font-size:10.5px;color:#5ed8c4;">${esc(t('dashboard.step_verified', { pct: Math.round((completedStepsCount / totalSteps) * 100) }))}</span>
         </div>
 
         <div class="action-list">
@@ -904,7 +972,7 @@ function renderDashboardHome() {
                   <strong>${esc(st.label)}</strong>
                   <span>${esc(st.detail)}</span>
                 </div>
-                <div class="action-state">${isDone ? 'DONE' : 'PENDING'}</div>
+                <div class="action-state">${isDone ? esc(t('dashboard.step_done')) : esc(t('dashboard.step_pending'))}</div>
               </div>
             `;
           }).join('')}
@@ -912,7 +980,7 @@ function renderDashboardHome() {
 
         <div class="panel-footnote">
           ${icon('shield', 13)}
-          <span>Interactive safety drill simulation. Click steps to toggle verification status.</span>
+          <span>${esc(t('dashboard.panel_footnote'))}</span>
         </div>
       </div>
 
@@ -921,8 +989,8 @@ function renderDashboardHome() {
         <div class="readiness-card">
           <div class="section-heading compact">
             <div>
-              <div class="eyebrow">YOUR READINESS</div>
-              <h3>Shift Overview</h3>
+              <div class="eyebrow">${esc(t('dashboard.your_readiness'))}</div>
+              <h3>${esc(t('dashboard.shift_overview'))}</h3>
             </div>
             <button class="icon-button" data-page="Reports">${icon('activity', 15)}</button>
           </div>
@@ -936,19 +1004,19 @@ function renderDashboardHome() {
               <span>${readiness}%</span>
             </div>
             <div>
-              <strong>${readiness >= 70 ? 'Ready for shift' : 'Training required'}</strong>
-              <span>${totalEmployees} total registered workers</span>
-              <b>${icon('check', 12)} Regional language track</b>
+              <strong>${readiness >= 70 ? esc(t('dashboard.ready_for_shift')) : esc(t('dashboard.training_required'))}</strong>
+              <span>${esc(t('dashboard.total_registered_workers', { n: totalEmployees }))}</span>
+              <b>${icon('check', 12)} ${esc(t('dashboard.regional_lang_track'))}</b>
             </div>
           </div>
 
           <div class="readiness-metrics">
             <div>
-              <small>ACTIVE SESSIONS</small>
+              <small>${esc(t('dashboard.active_sessions'))}</small>
               <strong>${apiOverview.activeSessions}</strong>
             </div>
             <div>
-              <small>PASSED ASSESSMENTS</small>
+              <small>${esc(t('dashboard.passed_assessments'))}</small>
               <strong>${apiOverview.passedAssessments}</strong>
             </div>
           </div>
@@ -957,8 +1025,8 @@ function renderDashboardHome() {
         <div class="credential-card">
           <div class="credential-header">
             <div>
-              <div class="eyebrow">COMPLIANCE CREDENTIAL</div>
-              <h3>DGMS Qualification</h3>
+              <div class="eyebrow">${esc(t('dashboard.compliance_credential'))}</div>
+              <h3>${esc(t('dashboard.dgms_qualification'))}</h3>
             </div>
             <div class="credential-icon">${icon('award', 20)}</div>
           </div>
@@ -966,16 +1034,16 @@ function renderDashboardHome() {
           <div class="credential-body">
             <div class="credential-seal">
               ${icon('shield', 22)}
-              <span>VERIFIED</span>
+              <span>${esc(t('badge.verified'))}</span>
             </div>
             <div>
               <strong>100%</strong>
-              <span>Standard Score</span>
+              <span>${esc(t('dashboard.standard_score'))}</span>
             </div>
           </div>
 
           <button class="primary-button" style="width:100%;" data-action="view-sample-cert">
-            ${icon('award', 14)} View Official Certificate
+            ${icon('award', 14)} ${esc(t('action.view_official_cert'))}
           </button>
         </div>
       </div>
@@ -985,11 +1053,11 @@ function renderDashboardHome() {
     <section class="field-gallery">
       <div class="section-heading">
         <div>
-          <div class="eyebrow">ON THE GROUND</div>
-          <h2>Safety, Seen in Practice</h2>
+          <div class="eyebrow">${esc(t('dashboard.on_the_ground'))}</div>
+          <h2>${esc(t('dashboard.safety_in_practice'))}</h2>
         </div>
         <div class="gallery-caption">
-          <span class="live-pulse"></span> REAL-WORLD TRAINING ENVIRONMENTS
+          <span class="live-pulse"></span> ${esc(t('dashboard.real_world_env'))}
         </div>
       </div>
 
@@ -999,8 +1067,8 @@ function renderDashboardHome() {
           <div class="field-photo-shade"></div>
           <div class="field-photo-copy">
             <div>
-              <small>FIELD DRILL</small>
-              <strong>Underground Mine Crew Evacuation</strong>
+              <small>${esc(t('dashboard.drill_crew_kicker'))}</small>
+              <strong>${esc(t('dashboard.drill_crew_title'))}</strong>
             </div>
             ${icon('arrow', 15)}
           </div>
@@ -1011,8 +1079,8 @@ function renderDashboardHome() {
           <div class="field-photo-shade"></div>
           <div class="field-photo-copy">
             <div>
-              <small>ATMOSPHERIC HAZARD</small>
-              <strong>Optical Gas Monitoring in Confined Spaces</strong>
+              <small>${esc(t('dashboard.drill_gas_kicker'))}</small>
+              <strong>${esc(t('dashboard.drill_gas_title'))}</strong>
             </div>
             ${icon('arrow', 15)}
           </div>
@@ -1023,8 +1091,8 @@ function renderDashboardHome() {
           <div class="field-photo-shade"></div>
           <div class="field-photo-copy">
             <div>
-              <small>AR INSPECTION</small>
-              <strong>PPE Protocol & Fall Anchor Inspection</strong>
+              <small>${esc(t('dashboard.drill_ppe_kicker'))}</small>
+              <strong>${esc(t('dashboard.drill_ppe_title'))}</strong>
             </div>
             ${icon('arrow', 15)}
           </div>
@@ -1036,10 +1104,10 @@ function renderDashboardHome() {
     <section class="section-block">
       <div class="section-heading">
         <div>
-          <div class="eyebrow">WORKFORCE DIRECTORY</div>
-          <h2>Active Trainees</h2>
+          <div class="eyebrow">${esc(t('dashboard.workforce_eyebrow'))}</div>
+          <h2>${esc(t('dashboard.workforce_title'))}</h2>
         </div>
-        <button class="text-button" data-page="Workers">View all employees ${icon('arrow', 13)}</button>
+        <button class="text-button" data-page="Workers">${esc(t('dashboard.workforce_view_all'))} ${icon('arrow', 13)}</button>
       </div>
 
       ${apiTrainees.length > 0 ? `
@@ -1048,33 +1116,33 @@ function renderDashboardHome() {
             <table>
               <thead>
                 <tr>
-                  <th>EMPLOYEE</th>
-                  <th>EMPLOYEE ID</th>
-                  <th>LANGUAGE</th>
-                  <th>DEVICE / HEADSET</th>
-                  <th>REGISTERED</th>
-                  <th>ACTIONS</th>
+                  <th>${esc(t('workers.th_employee'))}</th>
+                  <th>${esc(t('workers.th_id'))}</th>
+                  <th>${esc(t('sessions.th_language'))}</th>
+                  <th>${esc(t('workers.th_device'))}</th>
+                  <th>${esc(t('workers.th_registered'))}</th>
+                  <th>${esc(t('workers.th_actions'))}</th>
                 </tr>
               </thead>
               <tbody>
-                ${apiTrainees.slice(0, 5).map(t => `
+                ${apiTrainees.slice(0, 5).map(tItem => `
                   <tr>
                     <td>
                       <div class="worker-cell">
-                        <div class="avatar avatar-teal">${esc(t.name.split(' ').map(x => x[0]).join('').slice(0, 2).toUpperCase() || 'TR')}</div>
+                        <div class="avatar avatar-teal">${esc(tItem.name.split(' ').map(x => x[0]).join('').slice(0, 2).toUpperCase() || 'TR')}</div>
                         <div>
-                          <b>${esc(t.name)}</b>
-                          <small>${esc(t.traineeId)}</small>
+                          <b>${esc(tItem.name)}</b>
+                          <small>${esc(tItem.traineeId)}</small>
                         </div>
                       </div>
                     </td>
-                    <td><span style="font-family:'DM Mono',monospace;color:#f3a42b;">${esc(t.traineeId)}</span></td>
-                    <td>${badge(formatLanguage(t.language))}</td>
-                    <td><span style="font-family:'DM Mono',monospace;font-size:10px;color:#7e8f94;">${esc(t.deviceId ? t.deviceId.slice(0, 16) + '...' : 'Unity AR Headset')}</span></td>
-                    <td>${esc(formatRelativeTime(t.createdAt))}</td>
+                    <td><span style="font-family:'DM Mono',monospace;color:#f3a42b;">${esc(tItem.traineeId)}</span></td>
+                    <td>${badge(formatLanguage(tItem.language))}</td>
+                    <td><span style="font-family:'DM Mono',monospace;font-size:10px;color:#7e8f94;">${esc(tItem.deviceId ? tItem.deviceId.slice(0, 16) + '...' : 'Unity AR Headset')}</span></td>
+                    <td>${esc(formatRelativeTime(tItem.createdAt))}</td>
                     <td>
-                      <button class="outline-button" style="height:28px;padding:0 8px;font-size:10px;" data-open-trainee="${esc(t.id)}">
-                        View profile
+                      <button class="outline-button" style="height:28px;padding:0 8px;font-size:10px;" data-open-trainee="${esc(tItem.id)}">
+                        ${esc(t('action.view_profile'))}
                       </button>
                     </td>
                   </tr>
@@ -1083,7 +1151,7 @@ function renderDashboardHome() {
             </table>
           </div>
         </div>
-      ` : emptyStateCard('No Employees Registered', 'Register safety workers to monitor their AR sessions and certifications.', 'Add Worker', 'add-worker')}
+      ` : emptyStateCard(t('workers.empty_home_title'), t('workers.empty_home_desc'), t('action.add_worker'), 'add-worker')}
     </section>
   `;
 }
@@ -1092,42 +1160,42 @@ function renderDashboardHome() {
 // PAGE: WORKERS / EMPLOYEES
 // ==================================================
 function renderWorkersPage() {
-  const filtered = apiTrainees.filter(t => matchesSearch(`${t.name} ${t.traineeId} ${t.language} ${t.deviceId || ''}`));
+  const filtered = apiTrainees.filter(tItem => matchesSearch(`${tItem.name} ${tItem.traineeId} ${tItem.language} ${tItem.deviceId || ''}`));
 
   return `
     <div class="welcome-row">
       <div>
-        <div class="eyebrow">SAFEX AR COMMAND CENTER <span>/</span> WORKFORCE</div>
-        <h1>Employees & Trainees</h1>
-        <p>Real-time directory of registered industrial operators and their regional language preferences.</p>
+        <div class="eyebrow">${t('workers.eyebrow')}</div>
+        <h1>${esc(t('workers.title'))}</h1>
+        <p>${esc(t('workers.subtitle'))}</p>
       </div>
       <div class="welcome-actions">
-        <button class="primary-button" data-action="add-worker">${icon('plus', 14)} Add employee</button>
+        <button class="primary-button" data-action="add-worker">${icon('plus', 14)} ${esc(t('action.add_worker'))}</button>
       </div>
     </div>
 
     <div class="mini-stat-grid">
       <div class="mini-stat">
-        <small>Total Employees</small>
+        <small>${esc(t('workers.total_employees'))}</small>
         <b>${apiTrainees.length}</b>
       </div>
       <div class="mini-stat">
-        <small>English Preferred</small>
-        <b class="text-teal">${apiTrainees.filter(t => (t.language || '').toLowerCase() === 'en').length}</b>
+        <small>${esc(t('workers.english_preferred'))}</small>
+        <b class="text-teal">${apiTrainees.filter(tItem => (tItem.language || '').toLowerCase() === 'en').length}</b>
       </div>
       <div class="mini-stat">
-        <small>Hindi Preferred</small>
-        <b class="text-amber">${apiTrainees.filter(t => (t.language || '').toLowerCase() === 'hi').length}</b>
+        <small>${esc(t('workers.hindi_preferred'))}</small>
+        <b class="text-amber">${apiTrainees.filter(tItem => (tItem.language || '').toLowerCase() === 'hi').length}</b>
       </div>
       <div class="mini-stat">
-        <small>Santali Preferred</small>
-        <b style="color:#aa97f0;">${apiTrainees.filter(t => (t.language || '').toLowerCase() === 'sat').length}</b>
+        <small>${esc(t('workers.santali_preferred'))}</small>
+        <b style="color:#aa97f0;">${apiTrainees.filter(tItem => (tItem.language || '').toLowerCase() === 'sat').length}</b>
       </div>
     </div>
 
     <div class="page-toolbar">
-      <div class="filter-chip">${icon('users', 13)} ${filtered.length} employees found</div>
-      <button class="secondary-button" style="height:32px;padding:0 10px;" data-action="refresh">${icon('refresh', 13)} Refresh</button>
+      <div class="filter-chip">${icon('users', 13)} ${esc(t('workers.found_count', { n: filtered.length }))}</div>
+      <button class="secondary-button" style="height:32px;padding:0 10px;" data-action="refresh">${icon('refresh', 13)} ${esc(t('action.refresh'))}</button>
     </div>
 
     ${filtered.length > 0 ? `
@@ -1136,40 +1204,40 @@ function renderWorkersPage() {
           <table>
             <thead>
               <tr>
-                <th>EMPLOYEE NAME</th>
-                <th>EMPLOYEE ID</th>
-                <th>PREFERRED LANGUAGE</th>
-                <th>AR DEVICE ID</th>
-                <th>SESSIONS</th>
-                <th>CERTIFICATES</th>
-                <th>REGISTERED</th>
-                <th>ACTIONS</th>
+                <th>${esc(t('workers.th_employee_name'))}</th>
+                <th>${esc(t('workers.th_id'))}</th>
+                <th>${esc(t('workers.th_preferred_lang'))}</th>
+                <th>${esc(t('workers.th_device_id'))}</th>
+                <th>${esc(t('workers.th_sessions'))}</th>
+                <th>${esc(t('workers.th_certificates'))}</th>
+                <th>${esc(t('workers.th_registered'))}</th>
+                <th>${esc(t('workers.th_actions'))}</th>
               </tr>
             </thead>
             <tbody>
-              ${filtered.map(t => {
-                const sessionCount = t.sessions ? t.sessions.length : 0;
-                const certCount = t.certificates ? t.certificates.length : 0;
+              ${filtered.map(tItem => {
+                const sessionCount = tItem.sessions ? tItem.sessions.length : 0;
+                const certCount = tItem.certificates ? tItem.certificates.length : 0;
                 return `
                   <tr>
                     <td>
                       <div class="worker-cell">
-                        <div class="avatar avatar-teal">${esc(t.name.split(' ').map(x => x[0]).join('').slice(0, 2).toUpperCase() || 'TR')}</div>
+                        <div class="avatar avatar-teal">${esc(tItem.name.split(' ').map(x => x[0]).join('').slice(0, 2).toUpperCase() || 'TR')}</div>
                         <div>
-                          <b>${esc(t.name)}</b>
-                          <small>Registered Trainee</small>
+                          <b>${esc(tItem.name)}</b>
+                          <small>${esc(t('workers.registered_trainee'))}</small>
                         </div>
                       </div>
                     </td>
-                    <td><span style="font-family:'DM Mono',monospace;color:#f3a42b;font-weight:600;">${esc(t.traineeId)}</span></td>
-                    <td>${badge(formatLanguage(t.language))}</td>
-                    <td><span style="font-family:'DM Mono',monospace;font-size:10px;color:#7e8f94;">${esc(t.deviceId || 'Unity Device')}</span></td>
+                    <td><span style="font-family:'DM Mono',monospace;color:#f3a42b;font-weight:600;">${esc(tItem.traineeId)}</span></td>
+                    <td>${badge(formatLanguage(tItem.language))}</td>
+                    <td><span style="font-family:'DM Mono',monospace;font-size:10px;color:#7e8f94;">${esc(tItem.deviceId || 'Unity Device')}</span></td>
                     <td><b style="font-family:'Barlow Condensed',sans-serif;font-size:16px;">${sessionCount}</b></td>
                     <td><b style="font-family:'Barlow Condensed',sans-serif;font-size:16px;color:#5ed8c4;">${certCount}</b></td>
-                    <td>${esc(formatRelativeTime(t.createdAt))}</td>
+                    <td>${esc(formatRelativeTime(tItem.createdAt))}</td>
                     <td>
-                      <button class="outline-button" style="height:28px;padding:0 10px;font-size:10px;" data-open-trainee="${esc(t.id)}">
-                        View profile
+                      <button class="outline-button" style="height:28px;padding:0 10px;font-size:10px;" data-open-trainee="${esc(tItem.id)}">
+                        ${esc(t('action.view_profile'))}
                       </button>
                     </td>
                   </tr>
@@ -1179,7 +1247,7 @@ function renderWorkersPage() {
           </table>
         </div>
       </div>
-    ` : emptyStateCard('No Employees Found', 'No trainees match your search or none are registered yet in PostgreSQL.', 'Add Employee', 'add-worker')}
+    ` : emptyStateCard(t('workers.empty_title'), t('workers.empty_desc'), t('action.add_worker'), 'add-worker')}
   `;
 }
 
@@ -1195,18 +1263,18 @@ function renderSessionsPage() {
   return `
     <div class="welcome-row">
       <div>
-        <div class="eyebrow">SAFEX AR COMMAND CENTER <span>/</span> TELEMETRY</div>
-        <h1>Training Sessions</h1>
-        <p>Live operational sessions synchronized from the SAFEX Unity Android AR simulator.</p>
+        <div class="eyebrow">${t('sessions.eyebrow')}</div>
+        <h1>${esc(t('sessions.title'))}</h1>
+        <p>${esc(t('sessions.subtitle'))}</p>
       </div>
       <div class="welcome-actions">
-        <button class="primary-button" data-action="schedule">${icon('plus', 14)} Schedule session</button>
+        <button class="primary-button" data-action="schedule">${icon('plus', 14)} ${esc(t('action.schedule'))}</button>
       </div>
     </div>
 
     <div class="page-toolbar">
-      <div class="filter-chip">${icon('activity', 13)} ${filtered.length} sessions recorded</div>
-      <button class="secondary-button" style="height:32px;padding:0 10px;" data-action="refresh">${icon('refresh', 13)} Refresh</button>
+      <div class="filter-chip">${icon('activity', 13)} ${esc(t('sessions.found_count', { n: filtered.length }))}</div>
+      <button class="secondary-button" style="height:32px;padding:0 10px;" data-action="refresh">${icon('refresh', 13)} ${esc(t('action.refresh'))}</button>
     </div>
 
     ${filtered.length > 0 ? `
@@ -1215,21 +1283,21 @@ function renderSessionsPage() {
           <table>
             <thead>
               <tr>
-                <th>SESSION ID</th>
-                <th>MODULE</th>
-                <th>EMPLOYEE</th>
-                <th>LANGUAGE</th>
-                <th>STARTED</th>
-                <th>DURATION</th>
-                <th>STATUS</th>
+                <th>${esc(t('sessions.th_session_id'))}</th>
+                <th>${esc(t('sessions.th_module'))}</th>
+                <th>${esc(t('sessions.th_employee'))}</th>
+                <th>${esc(t('sessions.th_language'))}</th>
+                <th>${esc(t('sessions.th_started'))}</th>
+                <th>${esc(t('sessions.th_duration'))}</th>
+                <th>${esc(t('sessions.th_status'))}</th>
               </tr>
             </thead>
             <tbody>
               ${filtered.map(s => {
-                const modName = s.module === 'FIRE' ? 'Fire & Explosion' : 'Gas & Confined Space';
+                const modName = s.module === 'FIRE' ? t('modules.fire_name') : t('modules.gas_name');
                 const traineeName = s.trainee ? s.trainee.name : (s.traineeId || 'Unknown');
                 const lang = formatLanguage(s.trainee ? s.trainee.language : 'en');
-                const duration = s.durationSeconds ? `${Math.round(s.durationSeconds / 60)} min` : 'In progress';
+                const duration = s.durationSeconds ? t('sessions.min_unit', { n: Math.round(s.durationSeconds / 60) }) : t('sessions.in_progress');
 
                 return `
                   <tr>
@@ -1238,7 +1306,7 @@ function renderSessionsPage() {
                     <td>${esc(traineeName)}</td>
                     <td>${badge(lang)}</td>
                     <td>${esc(formatRelativeTime(s.startedAt))}</td>
-                    <td><span style="font-family:'DM Mono',monospace;font-size:10px;">${duration}</span></td>
+                    <td><span style="font-family:'DM Mono',monospace;font-size:10px;">${esc(duration)}</span></td>
                     <td>${badge(s.status || 'IN_PROGRESS')}</td>
                   </tr>
                 `;
@@ -1247,7 +1315,7 @@ function renderSessionsPage() {
           </table>
         </div>
       </div>
-    ` : emptyStateCard('No Training Sessions Recorded Yet', 'Start an AR simulation on the Unity Android headset or schedule a session to see real telemetry.', 'Schedule Session', 'schedule')}
+    ` : emptyStateCard(t('sessions.empty_title'), t('sessions.empty_desc'), t('action.schedule'), 'schedule')}
   `;
 }
 
@@ -1255,20 +1323,22 @@ function renderSessionsPage() {
 // PAGE: MODULES
 // ==================================================
 function renderModulesPage() {
+  const currentModules = getModules();
+
   return `
     <div class="welcome-row">
       <div>
-        <div class="eyebrow">SAFEX AR COMMAND CENTER <span>/</span> MODULES</div>
-        <h1>Safety Training Modules</h1>
-        <p>Immersive AR training simulations engineered for high-risk industrial safety scenarios.</p>
+        <div class="eyebrow">${t('modules.eyebrow')}</div>
+        <h1>${esc(t('modules.title'))}</h1>
+        <p>${esc(t('modules.subtitle'))}</p>
       </div>
       <div class="welcome-actions">
-        <button class="primary-button" data-action="schedule">${icon('plus', 14)} Launch module drill</button>
+        <button class="primary-button" data-action="schedule">${icon('plus', 14)} ${esc(t('action.launch_drill'))}</button>
       </div>
     </div>
 
     <div class="module-grid" style="grid-template-columns:repeat(2, 1fr);margin-bottom:28px;">
-      ${modules.map(m => {
+      ${currentModules.map(m => {
         const stat = apiModuleStats.find(s => s.key === m.key);
         const trainees = stat ? stat.trainees : (m.key === 'FIRE' ? apiOverview.fireSessions : apiOverview.gasSessions);
         const progress = stat ? stat.completion : 75;
@@ -1278,18 +1348,18 @@ function renderModulesPage() {
             <div class="module-image">
               <img class="module-photo" src="${m.image}" onerror="if(!this.dataset.t){this.dataset.t='1';this.src='/public/img/${m.file}';}else if(this.dataset.t==='1'){this.dataset.t='2';this.src='img/${m.file}';}" alt="${esc(m.name)}" loading="eager" />
               <div class="module-image-shade"></div>
-              <div class="module-tag">${icon(m.icon, 12)} ${m.tag}</div>
+              <div class="module-tag">${icon(m.icon, 12)} ${esc(m.tag)}</div>
               <div class="module-arrow">${icon('arrow', 14)}</div>
             </div>
             <div class="module-body">
               <div class="module-title-row">
-                <span class="module-kicker">${m.kicker}</span>
-                <span class="module-kicker" style="color:#5ed8c4;">${m.lessons}</span>
+                <span class="module-kicker">${esc(m.kicker)}</span>
+                <span class="module-kicker" style="color:#5ed8c4;">${esc(m.lessons)}</span>
               </div>
               <h3>${esc(m.name)}</h3>
               <p>${esc(m.summary)}</p>
               <div class="module-footer">
-                <span>${icon('users', 13)} ${trainees} enrolled trainees</span>
+                <span>${icon('users', 13)} ${esc(t('modules.enrolled_trainees', { n: trainees }))}</span>
                 <div class="module-progress">
                   <span style="font-family:'DM Mono',monospace;font-size:10px;">${progress}%</span>
                   <div class="progress-track"><i style="width:${progress}%"></i></div>
@@ -1315,18 +1385,18 @@ function renderAssessmentsPage() {
   return `
     <div class="welcome-row">
       <div>
-        <div class="eyebrow">SAFEX AR COMMAND CENTER <span>/</span> EVALUATIONS</div>
-        <h1>Assessments</h1>
-        <p>Competency evaluations recorded by the SAFEX AR Assessment Engine.</p>
+        <div class="eyebrow">${t('assessments.eyebrow')}</div>
+        <h1>${esc(t('assessments.title'))}</h1>
+        <p>${esc(t('assessments.subtitle'))}</p>
       </div>
       <div class="welcome-actions">
-        <button class="secondary-button" data-action="refresh">${icon('refresh', 14)} Refresh</button>
+        <button class="secondary-button" data-action="refresh">${icon('refresh', 14)} ${esc(t('action.refresh'))}</button>
       </div>
     </div>
 
     <div class="page-toolbar">
-      <div class="filter-chip">${icon('check', 13)} ${filtered.length} assessment records</div>
-      <button class="secondary-button" style="height:32px;padding:0 10px;" data-action="refresh">${icon('refresh', 13)} Refresh</button>
+      <div class="filter-chip">${icon('check', 13)} ${esc(t('assessments.found_count', { n: filtered.length }))}</div>
+      <button class="secondary-button" style="height:32px;padding:0 10px;" data-action="refresh">${icon('refresh', 13)} ${esc(t('action.refresh'))}</button>
     </div>
 
     ${filtered.length > 0 ? `
@@ -1335,12 +1405,12 @@ function renderAssessmentsPage() {
           <table>
             <thead>
               <tr>
-                <th>TRAINEE</th>
-                <th>MODULE</th>
-                <th>SCORE</th>
-                <th>ACTIONS VERIFIED</th>
-                <th>DATE SUBMITTED</th>
-                <th>RESULT</th>
+                <th>${esc(t('assessments.th_trainee'))}</th>
+                <th>${esc(t('assessments.th_module'))}</th>
+                <th>${esc(t('assessments.th_score'))}</th>
+                <th>${esc(t('assessments.th_actions_verified'))}</th>
+                <th>${esc(t('assessments.th_date_submitted'))}</th>
+                <th>${esc(t('assessments.th_result'))}</th>
               </tr>
             </thead>
             <tbody>
@@ -1348,7 +1418,7 @@ function renderAssessmentsPage() {
                 const trainee = a.session ? a.session.trainee : null;
                 const traineeName = trainee ? trainee.name : 'Operator';
                 const lang = formatLanguage(trainee ? trainee.language : 'en');
-                const modName = a.module === 'FIRE' ? 'Fire & Explosion' : 'Gas & Confined Space';
+                const modName = a.module === 'FIRE' ? t('modules.fire_name') : t('modules.gas_name');
                 const actionsCount = Array.isArray(a.completedActions) ? a.completedActions.length : 4;
 
                 return `
@@ -1364,7 +1434,7 @@ function renderAssessmentsPage() {
                     </td>
                     <td><b>${esc(modName)}</b></td>
                     <td><b style="font-family:'Barlow Condensed',sans-serif;font-size:18px;color:#5ed8c4;">${a.score}%</b></td>
-                    <td><span style="font-family:'DM Mono',monospace;font-size:10.5px;">${actionsCount} verified</span></td>
+                    <td><span style="font-family:'DM Mono',monospace;font-size:10.5px;">${esc(t('assessments.actions_verified_count', { n: actionsCount }))}</span></td>
                     <td>${esc(formatRelativeTime(a.createdAt))}</td>
                     <td>${badge(a.passed ? 'PASSED' : 'FAILED')}</td>
                   </tr>
@@ -1374,7 +1444,7 @@ function renderAssessmentsPage() {
           </table>
         </div>
       </div>
-    ` : emptyStateCard('No Assessments Recorded Yet', 'Complete training assessments inside Unity AR to evaluate worker competency and issue certificates.', 'View Training Modules', 'modules')}
+    ` : emptyStateCard(t('assessments.empty_title'), t('assessments.empty_desc'), t('assessments.view_training_modules'), 'modules')}
   `;
 }
 
@@ -1391,29 +1461,29 @@ function renderCertificatesPage() {
   return `
     <div class="welcome-row">
       <div>
-        <div class="eyebrow">SAFEX AR COMMAND CENTER <span>/</span> COMPLIANCE</div>
-        <h1>${isVerification ? 'Credential Verification' : 'Certificates Issued'}</h1>
-        <p>${isVerification ? 'Instant audit verification and on-site QR credential validation.' : 'Official DGMS and OSHA industrial safety certificates generated by SAFEX.'}</p>
+        <div class="eyebrow">${t('certificates.eyebrow')}</div>
+        <h1>${esc(isVerification ? t('certificates.title_verify') : t('certificates.title_certs'))}</h1>
+        <p>${esc(isVerification ? t('certificates.subtitle_verify') : t('certificates.subtitle_certs'))}</p>
       </div>
       <div class="welcome-actions">
-        <button class="secondary-button" data-action="export-certs">${icon('download', 14)} Export audit log</button>
+        <button class="secondary-button" data-action="export-certs">${icon('download', 14)} ${esc(t('action.export_audit'))}</button>
       </div>
     </div>
 
     <!-- Lookup Form -->
     <div class="page-table-panel" style="padding:18px 20px;margin-bottom:20px;">
       <div style="margin-bottom:12px;">
-        <strong style="font-family:'Barlow Condensed',sans-serif;font-size:18px;color:#f4f5f2;">Instant QR / Credential Lookup</strong>
-        <p style="font-size:11px;color:#829297;margin:2px 0 0;">Enter any SAFEX certificate ID or scan an on-site QR code to verify authenticity directly against PostgreSQL records.</p>
+        <strong style="font-family:'Barlow Condensed',sans-serif;font-size:18px;color:#f4f5f2;">${esc(t('certificates.lookup_title'))}</strong>
+        <p style="font-size:11px;color:#829297;margin:2px 0 0;">${esc(t('certificates.lookup_desc'))}</p>
       </div>
 
       <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;">
         <form id="verify-form" style="display:flex;gap:10px;align-items:center;flex:1;min-width:280px;max-width:540px;">
-          <input id="verify-input" type="text" placeholder="e.g. SAFEX-20260928-842103" value="${esc(verifySearchQuery)}" required style="flex:1;height:38px;border-radius:7px;border:1px solid var(--border);background:#0b1215;color:#f4f5f2;padding:0 12px;font-size:11.5px;">
-          <button class="primary-button" type="submit" id="btn-verify-submit">${icon('search', 14)} Verify</button>
+          <input id="verify-input" type="text" placeholder="${esc(t('certificates.lookup_placeholder'))}" value="${esc(verifySearchQuery)}" required style="flex:1;height:38px;border-radius:7px;border:1px solid var(--border);background:#0b1215;color:#f4f5f2;padding:0 12px;font-size:11.5px;">
+          <button class="primary-button" type="submit" id="btn-verify-submit">${icon('search', 14)} ${esc(t('action.verify'))}</button>
         </form>
         <button type="button" class="primary-button" id="btn-scan-qr" data-action="open-qr-scanner" style="background:#154646;border:1px solid #5ed8c4;color:#e2ffff;display:inline-flex;align-items:center;gap:8px;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:0.04em;padding:0 16px;height:38px;border-radius:7px;transition:all 0.15s ease;">
-          ${icon('scan', 16)} SCAN QR CODE
+          ${icon('scan', 16)} ${esc(t('action.scan_qr'))}
         </button>
       </div>
 
@@ -1424,44 +1494,44 @@ function renderCertificatesPage() {
               <div style="display:flex;align-items:center;gap:10px;">
                 <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:#5ed8c4;color:#0a0f12;font-size:16px;font-weight:900;">✓</span>
                 <div>
-                  <b style="color:#5ed8c4;font-family:'Barlow Condensed',sans-serif;font-size:20px;letter-spacing:0.04em;">VERIFIED CERTIFICATE</b>
-                  <div style="font-size:11px;color:#839296;">Record confirmed authentic in SAFEX PostgreSQL database</div>
+                  <b style="color:#5ed8c4;font-family:'Barlow Condensed',sans-serif;font-size:20px;letter-spacing:0.04em;">${esc(t('certificates.verified_header'))}</b>
+                  <div style="font-size:11px;color:#839296;">${esc(t('certificates.verified_sub'))}</div>
                 </div>
               </div>
-              <span class="status-pill good"><i></i>VERIFIED</span>
+              <span class="status-pill good"><i></i>${esc(t('badge.verified'))}</span>
             </div>
 
             <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(160px, 1fr));gap:16px;font-size:11.5px;">
               <div>
-                <span style="color:#7d8f95;display:block;margin-bottom:2px;font-size:10px;text-transform:uppercase;letter-spacing:0.06em;">Certificate ID</span>
+                <span style="color:#7d8f95;display:block;margin-bottom:2px;font-size:10px;text-transform:uppercase;letter-spacing:0.06em;">${esc(t('certificates.lbl_cert_id'))}</span>
                 <b style="font-family:'DM Mono',monospace;color:#f3a42b;font-size:13px;">${esc(verifySearchResult.certificateId)}</b>
               </div>
               <div>
-                <span style="color:#7d8f95;display:block;margin-bottom:2px;font-size:10px;text-transform:uppercase;letter-spacing:0.06em;">Employee / Trainee</span>
+                <span style="color:#7d8f95;display:block;margin-bottom:2px;font-size:10px;text-transform:uppercase;letter-spacing:0.06em;">${esc(t('certificates.lbl_employee'))}</span>
                 <b style="font-size:13px;color:#f4f5f2;">${esc(verifySearchResult.traineeName || (verifySearchResult.trainee ? verifySearchResult.trainee.name : 'Trainee'))}</b>
                 ${verifySearchResult.traineeId ? `<small style="display:block;color:#7d8f95;font-family:'DM Mono',monospace;">ID: ${esc(verifySearchResult.traineeId)}</small>` : ''}
               </div>
               <div>
-                <span style="color:#7d8f95;display:block;margin-bottom:2px;font-size:10px;text-transform:uppercase;letter-spacing:0.06em;">Training Module</span>
+                <span style="color:#7d8f95;display:block;margin-bottom:2px;font-size:10px;text-transform:uppercase;letter-spacing:0.06em;">${esc(t('certificates.lbl_module'))}</span>
                 <b style="font-size:13px;color:#f4f5f2;">${esc(verifySearchResult.moduleName || verifySearchResult.module)}</b>
               </div>
               <div>
-                <span style="color:#7d8f95;display:block;margin-bottom:2px;font-size:10px;text-transform:uppercase;letter-spacing:0.06em;">Completion Status</span>
-                <b style="color:#5ed8c4;font-size:13px;">${esc(verifySearchResult.status || 'PASSED')} (${verifySearchResult.score ?? 100}%)</b>
+                <span style="color:#7d8f95;display:block;margin-bottom:2px;font-size:10px;text-transform:uppercase;letter-spacing:0.06em;">${esc(t('certificates.lbl_completion'))}</span>
+                <b style="color:#5ed8c4;font-size:13px;">${esc(verifySearchResult.status || t('badge.passed'))} (${verifySearchResult.score ?? 100}%)</b>
               </div>
               <div>
-                <span style="color:#7d8f95;display:block;margin-bottom:2px;font-size:10px;text-transform:uppercase;letter-spacing:0.06em;">Issued Date</span>
+                <span style="color:#7d8f95;display:block;margin-bottom:2px;font-size:10px;text-transform:uppercase;letter-spacing:0.06em;">${esc(t('certificates.lbl_issued'))}</span>
                 <b style="font-size:13px;color:#f4f5f2;">${esc(verifySearchResult.verificationDetails?.issuedDateFormatted || formatRelativeTime(verifySearchResult.issuedAt))}</b>
               </div>
               <div>
-                <span style="color:#7d8f95;display:block;margin-bottom:2px;font-size:10px;text-transform:uppercase;letter-spacing:0.06em;">Compliance Standard</span>
+                <span style="color:#7d8f95;display:block;margin-bottom:2px;font-size:10px;text-transform:uppercase;letter-spacing:0.06em;">${esc(t('certificates.lbl_compliance'))}</span>
                 <span style="color:#8ba0a6;font-size:11px;">ISO 45001 / OSHA 1910</span>
               </div>
             </div>
 
             <div style="margin-top:16px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.06);display:flex;justify-content:flex-end;">
               <button class="primary-button" style="height:30px;padding:0 14px;font-size:11px;" data-view-cert-object='${esc(JSON.stringify(verifySearchResult))}'>
-                View Certificate Document
+                ${esc(t('action.view_cert_doc'))}
               </button>
             </div>
           </div>
@@ -1471,14 +1541,14 @@ function renderCertificatesPage() {
               <div style="display:flex;align-items:center;gap:10px;">
                 <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:#e4544a;color:#ffffff;font-size:16px;font-weight:900;">✕</span>
                 <div>
-                  <b style="color:#e4544a;font-family:'Barlow Condensed',sans-serif;font-size:20px;letter-spacing:0.04em;">CERTIFICATE NOT FOUND</b>
-                  <div style="font-size:11px;color:#9b8f8e;">Certificate record could not be verified against the SAFEX PostgreSQL records.</div>
+                  <b style="color:#e4544a;font-family:'Barlow Condensed',sans-serif;font-size:20px;letter-spacing:0.04em;">${esc(t('certificates.not_found_header'))}</b>
+                  <div style="font-size:11px;color:#9b8f8e;">${esc(t('certificates.not_found_sub'))}</div>
                 </div>
               </div>
-              <span class="status-pill warn"><i></i>NOT FOUND</span>
+              <span class="status-pill warn"><i></i>${esc(t('badge.not_found'))}</span>
             </div>
             <p style="font-size:11.5px;color:#8ba0a6;margin:8px 0 0;line-height:1.5;">
-              The certificate ID <strong style="font-family:'DM Mono',monospace;color:#f3a42b;">${esc(verifySearchResult.certificateId || verifySearchQuery)}</strong> could not be verified against the SAFEX PostgreSQL records. Please check the ID or re-scan the QR code.
+              ${t('certificates.not_found_body', { id: `<strong style="font-family:'DM Mono',monospace;color:#f3a42b;">${esc(verifySearchResult.certificateId || verifySearchQuery)}</strong>` })}
             </p>
           </div>
         `
@@ -1486,8 +1556,8 @@ function renderCertificatesPage() {
     </div>
 
     <div class="page-toolbar">
-      <div class="filter-chip">${icon('award', 13)} ${filtered.length} certificate records</div>
-      <button class="secondary-button" style="height:32px;padding:0 10px;" data-action="refresh">${icon('refresh', 13)} Refresh</button>
+      <div class="filter-chip">${icon('award', 13)} ${esc(t('certificates.found_count', { n: filtered.length }))}</div>
+      <button class="secondary-button" style="height:32px;padding:0 10px;" data-action="refresh">${icon('refresh', 13)} ${esc(t('action.refresh'))}</button>
     </div>
 
     ${filtered.length > 0 ? `
@@ -1496,20 +1566,20 @@ function renderCertificatesPage() {
           <table>
             <thead>
               <tr>
-                <th>CERTIFICATE ID</th>
-                <th>EMPLOYEE</th>
-                <th>MODULE</th>
-                <th>SCORE</th>
-                <th>ISSUED DATE</th>
-                <th>STATUS</th>
-                <th>ACTIONS</th>
+                <th>${esc(t('certificates.th_id'))}</th>
+                <th>${esc(t('certificates.th_employee'))}</th>
+                <th>${esc(t('certificates.th_module'))}</th>
+                <th>${esc(t('certificates.th_score'))}</th>
+                <th>${esc(t('certificates.th_issued_date'))}</th>
+                <th>${esc(t('certificates.th_status'))}</th>
+                <th>${esc(t('certificates.th_actions'))}</th>
               </tr>
             </thead>
             <tbody>
               ${filtered.map(c => {
                 const traineeName = c.trainee ? c.trainee.name : (c.traineeId || 'Trainee');
                 const lang = formatLanguage(c.trainee ? c.trainee.language : 'en');
-                const modName = c.module === 'FIRE' ? 'Fire & Explosion' : 'Gas & Confined Space';
+                const modName = c.module === 'FIRE' ? t('modules.fire_name') : t('modules.gas_name');
 
                 return `
                   <tr>
@@ -1529,7 +1599,7 @@ function renderCertificatesPage() {
                     <td>${badge('VERIFIED')}</td>
                     <td>
                       <button class="primary-button" style="height:28px;padding:0 10px;font-size:10px;" data-view-cert-object='${esc(JSON.stringify(c))}'>
-                        View certificate
+                        ${esc(t('action.view_cert'))}
                       </button>
                     </td>
                   </tr>
@@ -1539,7 +1609,7 @@ function renderCertificatesPage() {
           </table>
         </div>
       </div>
-    ` : emptyStateCard('No Certificates Issued Yet', 'Workers who score above 80% on AR emergency response assessments will be automatically awarded verifiable certificates here.', 'View Sample Certificate', 'view-sample-cert')}
+    ` : emptyStateCard(t('certificates.empty_title'), t('certificates.empty_desc'), t('certificates.view_sample_cert'), 'view-sample-cert')}
   `;
 }
 
@@ -1572,12 +1642,12 @@ function renderReportsPage() {
   return `
     <div class="welcome-row">
       <div>
-        <div class="eyebrow">SAFEX AR COMMAND CENTER <span>/</span> ANALYTICS</div>
-        <h1>Training Reports & Telemetry</h1>
-        <p>Comprehensive telemetry trends, module breakdown, and regional language participation.</p>
+        <div class="eyebrow">${t('reports.eyebrow')}</div>
+        <h1>${esc(t('reports.title'))}</h1>
+        <p>${esc(t('reports.subtitle'))}</p>
       </div>
       <div class="welcome-actions">
-        <button class="primary-button" data-action="export-audit">${icon('download', 14)} Export report</button>
+        <button class="primary-button" data-action="export-audit">${icon('download', 14)} ${esc(t('action.export_report'))}</button>
       </div>
     </div>
 
@@ -1585,11 +1655,11 @@ function renderReportsPage() {
     <div class="page-table-panel" style="padding:22px 24px;margin-bottom:24px;">
       <div class="panel-heading">
         <div>
-          <h2>Training Completion Trend</h2>
-          <p>Completed training sessions recorded across shifts</p>
+          <h2>${esc(t('reports.trend_title'))}</h2>
+          <p>${esc(t('reports.trend_desc'))}</p>
         </div>
         <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;color:#5ed8c4;font-weight:700;">
-          ${apiOverview.completedSessions} <span style="font-size:12px;color:#7e8f94;font-family:'DM Sans',sans-serif;">Sessions</span>
+          ${apiOverview.completedSessions} <span style="font-size:12px;color:#7e8f94;font-family:'DM Sans',sans-serif;">${esc(t('reports.sessions_unit'))}</span>
         </div>
       </div>
 
@@ -1623,41 +1693,45 @@ function renderReportsPage() {
       <div class="page-table-panel" style="padding:20px 22px;">
         <div class="panel-heading">
           <div>
-            <h2>Module Performance</h2>
-            <p>Fire vs Gas simulation metrics</p>
+            <h2>${esc(t('reports.module_title'))}</h2>
+            <p>${esc(t('reports.module_desc'))}</p>
           </div>
           ${icon('layers', 18)}
         </div>
-        ${apiModuleStats.map(m => `
-          <div style="margin-bottom:14px;">
-            <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:11.5px;">
-              <b>${esc(m.name)}</b>
-              <span style="font-family:'DM Mono',monospace;color:#5ed8c4;">${m.completion || 0}% Complete</span>
+        ${apiModuleStats.map(m => {
+          const modLabel = m.key === 'FIRE' ? t('modules.fire_name') : (m.key === 'GAS' ? t('modules.gas_name') : m.name);
+          return `
+            <div style="margin-bottom:14px;">
+              <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:11.5px;">
+                <b>${esc(modLabel)}</b>
+                <span style="font-family:'DM Mono',monospace;color:#5ed8c4;">${esc(t('reports.completion_rate', { n: m.completion || 0 }))}</span>
+              </div>
+              <div class="progress-track" style="width:100%;height:6px;">
+                <i style="width:${m.completion || 0}%;"></i>
+              </div>
             </div>
-            <div class="progress-track" style="width:100%;height:6px;">
-              <i style="width:${m.completion || 0}%;"></i>
-            </div>
-          </div>
-        `).join('')}
+          `;
+        }).join('')}
       </div>
 
       <!-- Language Stats -->
       <div class="page-table-panel" style="padding:20px 22px;">
         <div class="panel-heading">
           <div>
-            <h2>Language Distribution</h2>
-            <p>Workforce language demographic representation</p>
+            <h2>${esc(t('reports.lang_title'))}</h2>
+            <p>${esc(t('reports.lang_desc'))}</p>
           </div>
           ${icon('users', 18)}
         </div>
         ${apiLanguageStats.map(l => {
           const total = apiTrainees.length || 1;
           const pct = Math.round(((l.trainees || 0) / total) * 100);
+          const langLabel = formatLanguage(l.code);
           return `
             <div style="margin-bottom:14px;">
               <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:11.5px;">
-                <b>${esc(l.name)} (${esc(l.code.toUpperCase())})</b>
-                <span style="font-family:'DM Mono',monospace;color:#f3a42b;">${l.trainees || 0} Trainees (${pct}%)</span>
+                <b>${esc(langLabel)} (${esc(l.code.toUpperCase())})</b>
+                <span style="font-family:'DM Mono',monospace;color:#f3a42b;">${esc(t('reports.trainees_stat', { n: l.trainees || 0, pct }))}</span>
               </div>
               <div class="progress-track" style="width:100%;height:6px;">
                 <i style="width:${pct}%;background:#f3a42b;"></i>
@@ -1677,9 +1751,9 @@ function renderSettingsPage() {
   return `
     <div class="welcome-row">
       <div>
-        <div class="eyebrow">SAFEX AR COMMAND CENTER <span>/</span> CONFIGURATION</div>
-        <h1>Settings & Connectivity</h1>
-        <p>Configure backend API endpoints, database synchronization, and ambient dashboard effects.</p>
+        <div class="eyebrow">${t('settings.eyebrow')}</div>
+        <h1>${esc(t('settings.title'))}</h1>
+        <p>${esc(t('settings.subtitle'))}</p>
       </div>
     </div>
 
@@ -1688,44 +1762,44 @@ function renderSettingsPage() {
       <div class="settings-row" style="flex-direction:column;align-items:flex-start;gap:10px;">
         <div style="display:flex;justify-content:space-between;width:100%;align-items:center;">
           <div>
-            <b>Backend API Endpoint</b>
-            <small>Configured endpoint for real-time telemetry and database sync</small>
+            <b>${esc(t('settings.api_title'))}</b>
+            <small>${esc(t('settings.api_desc'))}</small>
           </div>
           <span class="status-pill ${isApiConnected ? 'good' : 'warn'}">
-            <i></i> ${isApiConnected ? 'Connected & Synchronized' : 'Offline / Retrying'}
+            <i></i> ${esc(isApiConnected ? t('settings.connected_synced') : t('settings.offline_retrying'))}
           </span>
         </div>
 
         <form id="api-url-form" style="display:flex;gap:10px;width:100%;max-width:580px;margin-top:6px;">
           <input id="api-url-input" type="url" placeholder="https://safex-arnx.onrender.com" value="${esc(API_BASE)}" style="flex:1;height:36px;border-radius:7px;border:1px solid var(--border);background:#0b1215;color:#f4f5f2;padding:0 12px;font-size:11px;">
-          <button class="primary-button" type="submit" style="height:36px;">Save & Connect</button>
-          <button class="secondary-button" type="button" data-action="reset-api-url" style="height:36px;">Reset Default</button>
+          <button class="primary-button" type="submit" style="height:36px;">${esc(t('action.save_connect'))}</button>
+          <button class="secondary-button" type="button" data-action="reset-api-url" style="height:36px;">${esc(t('action.reset_default'))}</button>
         </form>
       </div>
 
       <!-- Database Sync -->
       <div class="settings-row">
         <div>
-          <b>Database Architecture</b>
-          <small>PostgreSQL with Prisma ORM data synchronization</small>
+          <b>${esc(t('settings.db_title'))}</b>
+          <small>${esc(t('settings.db_desc'))}</small>
         </div>
-        <span class="status-pill good"><i></i> PostgreSQL Live</span>
+        <span class="status-pill good"><i></i> ${esc(t('settings.postgres_live'))}</span>
       </div>
 
       <!-- Regional Languages -->
       <div class="settings-row">
         <div>
-          <b>Multilingual Training Framework</b>
-          <small>Active voice prompt and UI localization support</small>
+          <b>${esc(t('settings.lang_title'))}</b>
+          <small>${esc(t('settings.lang_desc'))}</small>
         </div>
-        <span class="status-pill neutral"><i></i> English · Hindi · Santali</span>
+        <span class="status-pill neutral"><i></i> ${esc(t('settings.lang_val'))}</span>
       </div>
 
       <!-- Ambient Lighting -->
       <div class="settings-row">
         <div>
-          <b>Ambient Cursor Lighting</b>
-          <small>Subtle interactive cursor glow effect matching reference theme</small>
+          <b>${esc(t('settings.cursor_title'))}</b>
+          <small>${esc(t('settings.cursor_desc'))}</small>
         </div>
         <button class="toggle ${document.body.classList.contains('cursor-off') ? '' : 'on'}" data-action="cursor-toggle" role="switch" aria-checked="${!document.body.classList.contains('cursor-off')}">
           <i></i>
@@ -1735,10 +1809,10 @@ function renderSettingsPage() {
       <!-- Polling Frequency -->
       <div class="settings-row">
         <div>
-          <b>Auto-Telemetry Sync Interval</b>
-          <small>Polls PostgreSQL for live updates recorded by Unity Android APK</small>
+          <b>${esc(t('settings.interval_title'))}</b>
+          <small>${esc(t('settings.interval_desc'))}</small>
         </div>
-        <span class="status-pill info"><i></i> Every 10 seconds</span>
+        <span class="status-pill info"><i></i> ${esc(t('settings.every_10s'))}</span>
       </div>
     </div>
   `;
@@ -1750,7 +1824,7 @@ function renderSettingsPage() {
 
 function renderCertificateModal(cert) {
   const traineeName = cert.traineeName || (cert.trainee ? cert.trainee.name : 'Authorized Trainee');
-  const modName = cert.moduleName || (cert.module === 'FIRE' ? 'Fire & Explosion Response' : 'Gas & Confined Space Safety');
+  const modName = cert.moduleName || (cert.module === 'FIRE' ? t('modules.fire_name') : t('modules.gas_name'));
   const certId = cert.certificateId || 'SAFEX-260928-8842';
   const score = cert.score || 100;
   const issuedDate = cert.issuedDateFormatted || formatRelativeTime(cert.issuedAt);
@@ -1760,7 +1834,7 @@ function renderCertificateModal(cert) {
   return `
     <div class="modal-backdrop" data-action="close-modal">
       <div class="certificate-modal" onclick="event.stopPropagation()">
-        <button class="icon-button modal-close" data-action="close-modal" aria-label="Close certificate">${icon('close', 17)}</button>
+        <button class="icon-button modal-close" data-action="close-modal" aria-label="${esc(t('action.close'))}">${icon('close', 17)}</button>
         <div class="certificate-inner">
           <div class="certificate-corner certificate-corner-top"></div>
           <div class="certificate-corner certificate-corner-bottom"></div>
@@ -1770,27 +1844,27 @@ function renderCertificateModal(cert) {
             <span style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;letter-spacing:0.18em;color:#f5f6f3;">SAFEX</span>
           </div>
 
-          <div class="certificate-overline">DIGITAL CREDENTIAL · DGMS & OSHA COMPLIANT</div>
-          <h2>Certificate of <em>Safety Competency</em></h2>
-          <p class="certificate-copy">This official credential certifies that the undersigned candidate has completed rigorous AR action-based assessment drills and demonstrated emergency compliance.</p>
+          <div class="certificate-overline">${esc(t('cert_modal.overline'))}</div>
+          <h2>${esc(t('cert_modal.heading'))}</h2>
+          <p class="certificate-copy">${esc(t('cert_modal.copy'))}</p>
 
           <div class="certificate-rule"></div>
 
           <div class="certificate-grid">
             <div>
-              <small>AUTHORIZED CANDIDATE</small>
+              <small>${esc(t('cert_modal.lbl_candidate'))}</small>
               <strong>${esc(traineeName)}</strong>
             </div>
             <div>
-              <small>SAFETY DOMAIN</small>
+              <small>${esc(t('cert_modal.lbl_domain'))}</small>
               <strong>${esc(modName)}</strong>
             </div>
             <div>
-              <small>EVALUATION SCORE</small>
-              <strong style="color:#5ed8c4;">${score}% (PASSED)</strong>
+              <small>${esc(t('cert_modal.lbl_score'))}</small>
+              <strong style="color:#5ed8c4;">${score}% (${esc(t('cert_modal.passed'))})</strong>
             </div>
             <div>
-              <small>CREDENTIAL ID</small>
+              <small>${esc(t('cert_modal.lbl_id'))}</small>
               <strong style="font-family:'DM Mono',monospace;color:#f3a42b;">${esc(certId)}</strong>
             </div>
           </div>
@@ -1798,29 +1872,29 @@ function renderCertificateModal(cert) {
           <div class="certificate-footer">
             <div class="signature">
               <span>${esc(traineeName)}</span>
-              <small>AUTHORIZED CANDIDATE</small>
+              <small>${esc(t('cert_modal.lbl_candidate'))}</small>
             </div>
             <div class="seal">
               ${icon('shield', 26)}
-              <small>VERIFIED<br>DGMS & OSHA</small>
+              <small>${t('cert_modal.verified_seal')}</small>
             </div>
             <div class="certificate-qr-wrap">
               <img class="authorization-qr"
                    src="${qrApiUrl}"
                    onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\\'http://www.w3.org/2000/svg\\' viewBox=\\'0 0 25 25\\' fill=\\'%23101817\\'><rect width=\\'25\\' height=\\'25\\' fill=\\'%23f4f0e5\\'/><path d=\\'M0 0h7v7H0zM1 1h5v5H1zM2 2h3v3H2zM18 0h7v7h-7zM19 1h5v5h-5zM20 2h3v3h-2zM0 18h7v7H0zM1 19h5v5H1zM2 20h3v3H2zM9 2h1v1H9zM11 2h1v1h-1zM13 2h2v1h-2zM9 4h2v1H9zM13 4h1v1h-1zM15 4h1v1h-1zM9 9h7v1H9zM10 11h2v1h-2zM13 11h2v1h-2zM11 13h3v1h-3zM9 15h1v1H9zM12 15h2v1h-2zM15 15h1v1h-1zM9 18h1v1H9zM11 18h2v1h-1zM14 18h1v1h-1zM9 21h3v1H9zM13 21h2v1h-2zM10 23h1v1h-1zM13 23h2v1h-2z\\'/></svg>';"
                    alt="Scan to verify ${esc(certId)}" />
-              <small>SCAN TO AUTHORIZE<br/>CREDENTIAL</small>
+              <small>${t('cert_modal.scan_authorize')}</small>
             </div>
           </div>
 
           <div class="certificate-id">
-            CREDENTIAL ID · ${esc(certId)} <span>•</span> AUTHORIZATION ACTIVE
+            ${esc(t('cert_modal.lbl_id'))} · ${esc(certId)} <span>•</span> ${esc(t('cert_modal.auth_active'))}
           </div>
         </div>
 
         <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:18px;">
-          <button class="secondary-button" onclick="window.print()">${icon('download', 14)} Print / Download PDF</button>
-          <button class="primary-button" data-action="close-modal">Done</button>
+          <button class="secondary-button" onclick="window.print()">${icon('download', 14)} ${esc(t('action.print_pdf'))}</button>
+          <button class="primary-button" data-action="close-modal">${esc(t('action.done'))}</button>
         </div>
       </div>
     </div>
@@ -1828,7 +1902,7 @@ function renderCertificateModal(cert) {
 }
 
 function renderProfileDrawer(trainee) {
-  const t = trainee || {
+  const tData = trainee || {
     name: 'Safety Administrator',
     traineeId: 'ADMIN-01',
     language: 'en',
@@ -1836,18 +1910,18 @@ function renderProfileDrawer(trainee) {
     createdAt: new Date().toISOString()
   };
 
-  const initials = t.name.split(' ').map(x => x[0]).join('').slice(0, 2).toUpperCase() || 'SA';
+  const initials = tData.name.split(' ').map(x => x[0]).join('').slice(0, 2).toUpperCase() || 'SA';
 
   return `
     <div class="profile-backdrop" data-action="close-profile">
       <div class="profile-panel" onclick="event.stopPropagation()">
         <div class="profile-panel-head">
           <div>
-            <div class="eyebrow">TRAINEE PROFILE · ${esc(t.traineeId)}</div>
-            <h2>${esc(t.name)}</h2>
-            <p>Safety training history and operational credentials.</p>
+            <div class="eyebrow">${esc(t('profile.eyebrow', { id: tData.traineeId }))}</div>
+            <h2>${esc(tData.name)}</h2>
+            <p>${esc(t('profile.subtitle'))}</p>
           </div>
-          <button class="icon-button" data-action="close-profile" aria-label="Close profile">${icon('close', 17)}</button>
+          <button class="icon-button" data-action="close-profile" aria-label="${esc(t('action.close'))}">${icon('close', 17)}</button>
         </div>
 
         <div class="profile-overview">
@@ -1857,28 +1931,28 @@ function renderProfileDrawer(trainee) {
               <span class="profile-online"></span>
             </div>
             <div>
-              <h3>${esc(t.name)}</h3>
-              <p>Safety Operator · Regional Mine</p>
-              <span>${icon('shield', 12)} Preferred Language: ${esc(formatLanguage(t.language))}</span>
+              <h3>${esc(tData.name)}</h3>
+              <p>${esc(t('profile.role'))}</p>
+              <span>${icon('shield', 12)} ${esc(t('profile.preferred_lang', { lang: formatLanguage(tData.language) }))}</span>
             </div>
           </div>
 
           <div class="profile-stat">
-            <small>SAFETY SCORE</small>
+            <small>${esc(t('profile.safety_score'))}</small>
             <strong>86<span style="font-size:12px;color:#718288;">/100</span></strong>
           </div>
           <div class="profile-stat">
-            <small>ACTIVE SESSIONS</small>
-            <strong>${t.sessions ? t.sessions.length : 0}</strong>
+            <small>${esc(t('profile.active_sessions'))}</small>
+            <strong>${tData.sessions ? tData.sessions.length : 0}</strong>
           </div>
           <div class="profile-stat">
-            <small>CERTIFICATIONS</small>
-            <strong style="color:#5ed8c4;">${t.certificates ? t.certificates.length : 0}</strong>
+            <small>${esc(t('profile.certifications'))}</small>
+            <strong style="color:#5ed8c4;">${tData.certificates ? tData.certificates.length : 0}</strong>
           </div>
         </div>
 
         <div style="margin-top:auto;display:flex;gap:10px;">
-          <button class="primary-button" style="width:100%;" data-action="schedule">Schedule Training Session</button>
+          <button class="primary-button" style="width:100%;" data-action="schedule">${esc(t('action.schedule_training'))}</button>
         </div>
       </div>
     </div>
@@ -1890,31 +1964,31 @@ function renderAddWorkerModal() {
     <div class="modal-backdrop" data-action="close-modal">
       <div class="modal" onclick="event.stopPropagation()">
         <div class="modal-head">
-          <h2>Register Safety Trainee</h2>
-          <button class="icon-button" data-action="close-modal" aria-label="Close">${icon('close', 16)}</button>
+          <h2>${esc(t('modal_trainee.heading'))}</h2>
+          <button class="icon-button" data-action="close-modal" aria-label="${esc(t('action.close'))}">${icon('close', 16)}</button>
         </div>
-        <p class="modal-intro">Add a new worker into the PostgreSQL safety registry with their preferred training language.</p>
+        <p class="modal-intro">${esc(t('modal_trainee.intro'))}</p>
 
         <form id="add-worker-form">
-          <label>Full Employee Name</label>
-          <input name="name" type="text" placeholder="e.g. Ramesh Hansda" required>
+          <label>${esc(t('modal_trainee.name_label'))}</label>
+          <input name="name" type="text" placeholder="${esc(t('modal_trainee.name_ph'))}" required>
 
-          <label>Employee / Trainee ID</label>
-          <input name="traineeId" type="text" placeholder="e.g. TR-2026-90" required>
+          <label>${esc(t('modal_trainee.id_label'))}</label>
+          <input name="traineeId" type="text" placeholder="${esc(t('modal_trainee.id_ph'))}" required>
 
-          <label>Preferred Regional Language</label>
+          <label>${esc(t('modal_trainee.lang_label'))}</label>
           <select name="language" required>
-            <option value="en">English (Global Technical Standard)</option>
-            <option value="hi">Hindi (हिन्दी - Regional Mining)</option>
-            <option value="sat">Santali (ᱥᱟᱱᱛᱟᱲᱤ - Local Dialect)</option>
+            <option value="en">${esc(t('modal_trainee.opt_en'))}</option>
+            <option value="hi">${esc(t('modal_trainee.opt_hi'))}</option>
+            <option value="sat">${esc(t('modal_trainee.opt_sat'))}</option>
           </select>
 
-          <label>AR Headset / Device ID (Optional)</label>
-          <input name="deviceId" type="text" placeholder="e.g. Oculus-Quest-04 or Android-AR-2">
+          <label>${esc(t('modal_trainee.device_label'))}</label>
+          <input name="deviceId" type="text" placeholder="${esc(t('modal_trainee.device_ph'))}">
 
           <div class="modal-actions">
-            <button type="button" class="secondary-button" data-action="close-modal">Cancel</button>
-            <button type="submit" class="primary-button">Register Employee</button>
+            <button type="button" class="secondary-button" data-action="close-modal">${esc(t('action.cancel'))}</button>
+            <button type="submit" class="primary-button">${esc(t('action.register_employee'))}</button>
           </div>
         </form>
       </div>
@@ -1927,28 +2001,28 @@ function renderScheduleSessionModal() {
     <div class="modal-backdrop" data-action="close-modal">
       <div class="modal" onclick="event.stopPropagation()">
         <div class="modal-head">
-          <h2>Schedule AR Training Session</h2>
-          <button class="icon-button" data-action="close-modal" aria-label="Close">${icon('close', 16)}</button>
+          <h2>${esc(t('modal_schedule.heading'))}</h2>
+          <button class="icon-button" data-action="close-modal" aria-label="${esc(t('action.close'))}">${icon('close', 16)}</button>
         </div>
-        <p class="modal-intro">Deploy a simulated hazardous drill scenario for an active employee in PostgreSQL.</p>
+        <p class="modal-intro">${esc(t('modal_schedule.intro'))}</p>
 
         <form id="schedule-session-form">
-          <label>Select Trainee</label>
+          <label>${esc(t('modal_schedule.trainee_label'))}</label>
           <select name="traineeId" required>
-            ${apiTrainees.length > 0 ? apiTrainees.map(t => `
-              <option value="${esc(t.traineeId || t.id)}">${esc(t.name)} (${esc(t.traineeId)} · ${esc(formatLanguage(t.language))})</option>
+            ${apiTrainees.length > 0 ? apiTrainees.map(tItem => `
+              <option value="${esc(tItem.traineeId || tItem.id)}">${esc(tItem.name)} (${esc(tItem.traineeId)} · ${esc(formatLanguage(tItem.language))})</option>
             `).join('') : '<option value="TEST-001">Test Employee (TEST-001)</option>'}
           </select>
 
-          <label>Select Hazard Module</label>
+          <label>${esc(t('modal_schedule.module_label'))}</label>
           <select name="module" required>
-            <option value="FIRE">Fire & Explosion Response (M-01)</option>
-            <option value="GAS">Gas & Confined Space Safety (M-02)</option>
+            <option value="FIRE">${esc(t('modal_schedule.opt_fire'))}</option>
+            <option value="GAS">${esc(t('modal_schedule.opt_gas'))}</option>
           </select>
 
           <div class="modal-actions">
-            <button type="button" class="secondary-button" data-action="close-modal">Cancel</button>
-            <button type="submit" class="primary-button">Start Session</button>
+            <button type="button" class="secondary-button" data-action="close-modal">${esc(t('action.cancel'))}</button>
+            <button type="submit" class="primary-button">${esc(t('action.start_session'))}</button>
           </div>
         </form>
       </div>
@@ -2004,7 +2078,7 @@ function render() {
       overlay.innerHTML = renderProfileDrawer(activeProfileData);
     } else {
       // Keep any active form modal if open
-      const hasForm = overlay.querySelector('#add-worker-form') || overlay.querySelector('#schedule-session-form');
+      const hasForm = overlay.querySelector('#add-worker-form') || overlay.querySelector('#schedule-session-form') || overlay.querySelector('#qr-modal-backdrop');
       if (!hasForm) overlay.innerHTML = '';
     }
   }
@@ -2039,6 +2113,39 @@ window.setPage = setPage;
 // ==================================================
 
 document.addEventListener('click', async (e) => {
+  // Language Selector toggle
+  const langTrigger = e.target.closest('[data-action="toggle-lang-menu"]');
+  if (langTrigger) {
+    e.stopPropagation();
+    const wrap = document.querySelector('#lang-selector-wrap');
+    if (wrap) {
+      const isOpen = wrap.classList.toggle('open');
+      langTrigger.setAttribute('aria-expanded', String(isOpen));
+    }
+    return;
+  }
+
+  // Language Option select
+  const langOpt = e.target.closest('[data-change-lang]');
+  if (langOpt) {
+    e.stopPropagation();
+    const newLang = langOpt.dataset.changeLang;
+    const wrap = document.querySelector('#lang-selector-wrap');
+    if (wrap) wrap.classList.remove('open');
+    setLanguage(newLang);
+    return;
+  }
+
+  // Close language menu when clicking outside
+  const langWrap = document.querySelector('#lang-selector-wrap');
+  if (langWrap && langWrap.classList.contains('open')) {
+    if (!e.target.closest('#lang-selector-wrap')) {
+      langWrap.classList.remove('open');
+      const trigger = document.querySelector('#lang-menu-trigger');
+      if (trigger) trigger.setAttribute('aria-expanded', 'false');
+    }
+  }
+
   // Navigation item click
   const navBtn = e.target.closest('.nav-item');
   if (navBtn && navBtn.dataset.page) {
@@ -2072,7 +2179,7 @@ document.addEventListener('click', async (e) => {
   const traineeBtn = e.target.closest('[data-open-trainee]');
   if (traineeBtn) {
     const tId = traineeBtn.dataset.openTrainee;
-    const trainee = apiTrainees.find(t => t.id === tId || t.traineeId === tId);
+    const trainee = apiTrainees.find(tItem => tItem.id === tId || tItem.traineeId === tId);
     activeProfileData = trainee || null;
     profileDrawerOpen = true;
     render();
@@ -2118,7 +2225,7 @@ document.addEventListener('click', async (e) => {
       return;
     }
     if (action === 'refresh') {
-      toast('Synchronizing real-time telemetry from PostgreSQL...');
+      toast(t('toast.syncing_telemetry'));
       await loadAllData();
       return;
     }
@@ -2133,7 +2240,7 @@ document.addEventListener('click', async (e) => {
     if (action === 'reset-scenario') {
       activeScenarioProgress = [0];
       render();
-      toast('Scenario sequence reset.');
+      toast(t('toast.scenario_reset'));
       return;
     }
     if (action === 'open-profile') {
@@ -2157,7 +2264,7 @@ document.addEventListener('click', async (e) => {
       activeCertificateModal = {
         certificateId: 'SAFEX-20260928-8842',
         traineeName: apiTrainees[0] ? apiTrainees[0].name : 'faiz Shaikh',
-        moduleName: 'Fire & Explosion Response',
+        moduleName: t('modules.fire_name'),
         score: 100,
         issuedDateFormatted: 'Sep 29, 2026'
       };
@@ -2177,11 +2284,11 @@ document.addEventListener('click', async (e) => {
       return;
     }
     if (action === 'export-certs' || action === 'export-audit') {
-      toast('Compliance audit log generated for DGMS inspection.');
+      toast(t('toast.audit_exported'));
       return;
     }
     if (action === 'notifications') {
-      toast('All safety systems online. Zero active atmospheric alarm triggers.');
+      toast(t('toast.systems_online'));
       return;
     }
   }
@@ -2237,11 +2344,11 @@ document.addEventListener('submit', async (e) => {
 
     const res = await apiPost('/api/trainees', { name, traineeId, language, deviceId });
     if (res.success) {
-      toast(`Trainee ${name} registered in PostgreSQL (${formatLanguage(language)})`);
+      toast(t('toast.trainee_registered', { name, lang: formatLanguage(language) }));
       document.querySelector('#overlay-root').innerHTML = '';
       await loadAllData();
     } else {
-      toast('Error saving employee: ' + (res.message || 'Server error'), false);
+      toast(t('toast.error_trainee', { msg: res.message || 'Server error' }), false);
     }
     return;
   }
@@ -2262,11 +2369,11 @@ document.addEventListener('submit', async (e) => {
     });
 
     if (res.success) {
-      toast(`Session ${sessionId} scheduled in PostgreSQL`);
+      toast(t('toast.session_scheduled', { id: sessionId }));
       document.querySelector('#overlay-root').innerHTML = '';
       await loadAllData();
     } else {
-      toast('Error scheduling session: ' + (res.message || 'Server error'), false);
+      toast(t('toast.error_session', { msg: res.message || 'Server error' }), false);
     }
     return;
   }
@@ -2283,6 +2390,8 @@ document.addEventListener('keydown', (e) => {
     profileDrawerOpen = false;
     document.querySelector('#overlay-root').innerHTML = '';
     document.querySelector('#sidebar')?.classList.remove('open');
+    const wrap = document.querySelector('#lang-selector-wrap');
+    if (wrap) wrap.classList.remove('open');
   }
 });
 
@@ -2310,17 +2419,17 @@ function checkUrlHash() {
         if (cert) {
           verifySearchResult = cert;
           render();
-          toast('Scanned Certificate Record Verified: ' + certId);
+          toast(t('toast.scanned_verified', { id: certId }));
         } else {
           verifySearchResult = {
             certificateId: certId,
             traineeName: apiTrainees[0] ? apiTrainees[0].name : 'faiz Shaikh',
-            moduleName: 'Fire & Explosion Response',
+            moduleName: t('modules.fire_name'),
             score: 100,
             status: 'VERIFIED (DGMS & OSHA)'
           };
           render();
-          toast('Scanned Credential Verified: ' + certId);
+          toast(t('toast.scanned_verified', { id: certId }));
         }
       });
     }
